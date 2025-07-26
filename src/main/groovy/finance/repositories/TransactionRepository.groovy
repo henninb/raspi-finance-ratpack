@@ -19,7 +19,6 @@ import static org.jooq.generated.Tables.T_PARAMETER
 import static org.jooq.generated.Tables.T_TRANSACTION
 
 @Log
-@CompileStatic
 class TransactionRepository {
     private final DSLContext dslContext
 

@@ -11,7 +11,6 @@ import javax.sql.DataSource
 import static org.jooq.generated.Tables.T_TRANSACTION
 
 @Log
-@CompileStatic
 class SummaryRepository {
     private final DSLContext dslContext
 

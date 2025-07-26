@@ -6,7 +6,7 @@ import finance.repositories.ParameterRepository
 import finance.repositories.PaymentRepository
 import groovy.transform.CompileStatic
 import groovy.util.logging.Log
-import ratpack.service.Service
+import ratpack.core.service.Service
 
 import javax.inject.Inject
 

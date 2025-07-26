@@ -2,7 +2,7 @@ package finance.services
 
 import finance.domain.Summary
 import finance.repositories.SummaryRepository
-import ratpack.service.Service
+import ratpack.core.service.Service
 
 import javax.inject.Inject
 

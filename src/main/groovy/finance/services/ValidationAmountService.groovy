@@ -7,7 +7,7 @@ import finance.repositories.AccountRepository
 import finance.repositories.ValidationAmountRepository
 import groovy.transform.CompileStatic
 import groovy.util.logging.Log
-import ratpack.service.Service
+import ratpack.core.service.Service
 import javax.inject.Inject
 import java.sql.Timestamp
 

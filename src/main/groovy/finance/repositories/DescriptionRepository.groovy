@@ -13,7 +13,6 @@ import javax.sql.DataSource
 import static org.jooq.generated.Tables.T_DESCRIPTION
 
 @Log
-@CompileStatic
 class DescriptionRepository {
     private final DSLContext dslContext
 

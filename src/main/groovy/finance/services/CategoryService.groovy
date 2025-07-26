@@ -4,7 +4,7 @@ import finance.domain.Category
 import finance.repositories.CategoryRepository
 import groovy.transform.CompileStatic
 import groovy.util.logging.Log
-import ratpack.service.Service
+import ratpack.core.service.Service
 import javax.inject.Inject
 
 @Log

@@ -15,7 +15,6 @@ import static org.jooq.generated.Tables.T_PARAMETER
 import static org.jooq.generated.Tables.T_PAYMENT
 
 @Log
-@CompileStatic
 class ParameterRepository {
     private final DSLContext dslContext
 

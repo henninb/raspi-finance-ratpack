@@ -13,7 +13,6 @@ import finance.handlers.CorsHandler
 import finance.services.AccountService
 import finance.services.CategoryService
 import finance.services.DescriptionService
-import finance.services.FlywayService
 import finance.services.ParameterService
 import finance.services.PaymentService
 import finance.services.SummaryService
@@ -21,19 +20,20 @@ import finance.services.TransactionService
 import finance.services.ValidationAmountService
 
 //import gql.ratpack.GraphQLHandler
-import ratpack.ssl.SSLContexts
-import ratpack.handling.Context
+//import ratpack.ssl.SSLContexts
+//import io.netty.handler.ssl.SslContext
+import ratpack.core.handling.Context
 import ratpack.hikari.HikariModule
-import ratpack.server.ServerConfigBuilder
+import ratpack.core.server.ServerConfigBuilder
 
 import static ratpack.groovy.Groovy.ratpack
 
 ratpack {
     serverConfig { ServerConfigBuilder config ->
        // port(5050)
-        port(8443)
+        port(8080)
         json('db_config.json')
-        ssl SSLContexts.sslContext(new File('ssl/hornsup-raspi-finance.jks'), 'monday1')
+        //ssl SSLContexts.sslContext(new File('ssl/hornsup-raspi-finance.jks'), 'monday1')
 
         //https://github.com/merscwog/ratpack-ssl-test/tree/03b8d325708ae1a3fd20e3c35a5ead178b883703
     }
@@ -51,7 +51,6 @@ ratpack {
         bind(SummaryService)
         bind(ValidationAmountService)
         bind(ObjectMapper)
-        bindInstance(new FlywayService())
     }
 
     handlers {

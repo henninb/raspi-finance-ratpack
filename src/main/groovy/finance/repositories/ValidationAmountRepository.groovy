@@ -16,7 +16,6 @@ import static org.jooq.generated.Tables.T_ACCOUNT
 import static org.jooq.generated.Tables.T_VALIDATION_AMOUNT
 
 @Log
-@CompileStatic
 class ValidationAmountRepository {
     private final DSLContext dslContext
 

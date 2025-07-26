@@ -15,7 +15,6 @@ import static org.jooq.generated.Tables.T_ACCOUNT
 import static org.jooq.generated.Tables.T_CATEGORY
 
 @Log
-@CompileStatic
 class CategoryRepository {
     private final DSLContext dslContext
 

@@ -14,7 +14,6 @@ import javax.sql.DataSource
 import static org.jooq.generated.Tables.T_ACCOUNT
 
 @Log
-@CompileStatic
 class AccountRepository {
     private final DSLContext dslContext
 

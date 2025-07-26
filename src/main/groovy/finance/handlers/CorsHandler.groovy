@@ -1,9 +1,9 @@
 package finance.handlers
 
-import ratpack.handling.Handler
-import ratpack.handling.Context
-import ratpack.http.HttpMethod
-import ratpack.http.Request
+import ratpack.core.handling.Handler
+import ratpack.core.handling.Context
+import ratpack.core.http.HttpMethod
+import ratpack.core.http.Request
 
 import java.net.http.HttpResponse
 
