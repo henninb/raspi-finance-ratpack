@@ -7,13 +7,17 @@ plugins {
     id 'idea'
     id 'eclipse'
     id 'io.ratpack.ratpack-groovy' version "${ratpackVersion}"
-    id "com.github.johnrengelman.shadow" version "${shadowVersion}"
+    id "com.gradleup.shadow" version "${shadowVersion}"
     id "com.github.ben-manes.versions" version "${gradleVersionsPlugin}"
     id 'nu.studer.jooq' version "${jooqPluginVersion}"
 }
 
 repositories {
     mavenCentral()
+}
+
+test {
+    failOnNoDiscoveredTests = false
 }
 
 dependencies {
