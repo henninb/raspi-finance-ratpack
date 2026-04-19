@@ -31,7 +31,7 @@ dependencies {
     implementation ratpack.dependency("h2")
     implementation ratpack.dependency("groovy")
 
-    runtimeOnly("org.slf4j:slf4j-simple:2.0.16")
+    runtimeOnly("org.slf4j:slf4j-simple:${slf4jVersion}")
 
     //Groovy 3.0 - using codehaus namespace to match Ratpack 2.0 requirements
     implementation("org.codehaus.groovy:groovy:${groovyVersion}")
