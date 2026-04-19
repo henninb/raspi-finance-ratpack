@@ -1,13 +1,13 @@
 package finance.services
 
 import finance.domain.Account
-import finance.domain.Payment
 import finance.domain.ValidationAmount
 import finance.repositories.AccountRepository
 import finance.repositories.ValidationAmountRepository
 import groovy.transform.CompileStatic
 import groovy.util.logging.Log
 import ratpack.core.service.Service
+
 import javax.inject.Inject
 import java.sql.Timestamp
 
@@ -33,20 +33,41 @@ class ValidationAmountService implements Service {
         List<ValidationAmount> validationAmounts = validationAmountRepository.validationAmounts(account.accountId)
         if (validationAmounts) {
             return validationAmounts.sort { it.validationDate }.last()
-        } else {
-            return new ValidationAmount()
         }
+        return new ValidationAmount()
+    }
+
+    ValidationAmount validationAmountById(Long validationId) {
+        return validationAmountRepository.validationAmount(validationId)
+    }
+
+    List<ValidationAmount> validationAmountsByAccountAndState(String accountNameOwner, String transactionState) {
+        return validationAmountRepository.validationAmountsByAccountAndState(accountNameOwner, transactionState)
     }
 
     ValidationAmount validationAmountInsert(String accountNameOwner, ValidationAmount validationAmount) {
         Account account = accountRepository.account(accountNameOwner)
-
         validationAmount.dateUpdated = new Timestamp(System.currentTimeMillis())
         validationAmount.dateAdded = new Timestamp(System.currentTimeMillis())
         validationAmount.accountId = account.accountId
-
         validationAmountRepository.validationAmountInsert(validationAmount)
         return validationAmount
     }
 
+    ValidationAmount validationAmountUpdate(ValidationAmount validationAmount) {
+        ValidationAmount existing = validationAmountRepository.validationAmount(validationAmount.validationId)
+        if (!existing) {
+            throw new RuntimeException("validation amount not found: ${validationAmount.validationId}")
+        }
+        validationAmountRepository.validationAmountUpdate(validationAmount)
+        return validationAmountRepository.validationAmount(validationAmount.validationId)
+    }
+
+    boolean validationAmountDelete(Long validationId) {
+        ValidationAmount existing = validationAmountRepository.validationAmount(validationId)
+        if (!existing) {
+            return false
+        }
+        return validationAmountRepository.validationAmountDelete(validationId)
+    }
 }

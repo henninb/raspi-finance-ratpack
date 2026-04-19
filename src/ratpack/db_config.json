@@ -2,6 +2,6 @@
   "database": {
     "username": "henninb",
     "password": "monday1",
-    "jdbcUrl": "jdbc:postgresql://192.168.10.10:5432/finance_db"
+    "jdbcUrl": "jdbc:postgresql://postgresql.bhenning.com:5432/finance_db"
   }
 }

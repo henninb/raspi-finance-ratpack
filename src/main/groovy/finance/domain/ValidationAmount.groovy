@@ -3,6 +3,7 @@ package finance.domain
 import java.sql.Timestamp
 
 class ValidationAmount {
+    Long validationId
     Long accountId
     Timestamp validationDate
     Boolean activeStatus

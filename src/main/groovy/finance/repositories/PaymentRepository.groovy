@@ -1,9 +1,7 @@
 package finance.repositories
 
 import com.google.inject.Inject
-import finance.domain.Description
 import finance.domain.Payment
-import groovy.transform.CompileStatic
 import groovy.util.logging.Log
 import org.jooq.DSLContext
 import org.jooq.SQLDialect
@@ -11,7 +9,6 @@ import org.jooq.impl.DSL
 
 import javax.sql.DataSource
 
-import static org.jooq.generated.Tables.T_DESCRIPTION
 import static org.jooq.generated.Tables.T_PAYMENT
 
 @Log
@@ -28,7 +25,29 @@ class PaymentRepository {
         return true
     }
 
+    boolean paymentUpdate(Payment payment) {
+        dslContext.update(T_PAYMENT)
+                .set(T_PAYMENT.AMOUNT, payment.amount)
+                .set(T_PAYMENT.TRANSACTION_DATE, payment.transactionDate?.toLocalDate())
+                .where(T_PAYMENT.PAYMENT_ID.eq(payment.paymentId))
+                .execute()
+        return true
+    }
+
     List<Payment> payments() {
         return dslContext.selectFrom(T_PAYMENT).where().fetchInto(Payment)
+    }
+
+    Payment payment(Long paymentId) {
+        return dslContext.selectFrom(T_PAYMENT)
+                .where(T_PAYMENT.PAYMENT_ID.equal(paymentId))
+                .fetchOneInto(Payment)
+    }
+
+    boolean paymentDelete(Long paymentId) {
+        dslContext.delete(T_PAYMENT)
+                .where(T_PAYMENT.PAYMENT_ID.equal(paymentId))
+                .execute()
+        return true
     }
 }

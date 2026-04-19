@@ -3,7 +3,6 @@ package finance.services
 import finance.domain.Account
 import finance.domain.Category
 import finance.domain.Transaction
-import finance.domain.TransactionState
 import finance.repositories.AccountRepository
 import finance.repositories.CategoryRepository
 import finance.repositories.TransactionRepository
@@ -37,9 +36,21 @@ class TransactionService implements Service {
         return transactionRepository.transactions(accountNameOwner)
     }
 
+    List<Transaction> transactionsByCategory(String categoryName) {
+        return transactionRepository.transactionsByCategory(categoryName)
+    }
+
+    List<Transaction> transactionsByDescription(String descriptionName) {
+        return transactionRepository.transactionsByDescription(descriptionName)
+    }
+
+    Transaction transaction(String guid) {
+        return transactionRepository.transaction(guid)
+    }
+
     boolean deleteTransaction(String guid) {
         Transaction transaction = transactionRepository.transaction(guid)
-        if(transaction) {
+        if (transaction) {
             return transactionRepository.transactionDelete(guid)
         }
         return false
@@ -50,13 +61,13 @@ class TransactionService implements Service {
         transaction.dateAdded = new Timestamp(System.currentTimeMillis())
 
         Category category = categoryRepository.category(transaction.category)
-        if(!category) {
+        if (!category) {
             categoryRepository.categoryInsert(
                     new Category(categoryName: transaction.category, activeStatus: true)
             )
         }
         Account account = accountRepository.account(transaction.accountNameOwner)
-        if(account) {
+        if (account) {
             transaction.accountType = account.accountType
             transaction.accountId = account.accountId
             transactionRepository.transactionInsert(transaction)
@@ -64,6 +75,14 @@ class TransactionService implements Service {
             return transaction
         }
         throw new RuntimeException("no account found for transaction ${transaction.guid}")
+    }
+
+    boolean transactionUpdate(Transaction transaction) {
+        Transaction existing = transactionRepository.transaction(transaction.guid)
+        if (!existing) {
+            throw new RuntimeException("transaction not found: ${transaction.guid}")
+        }
+        return transactionRepository.transactionUpdate(transaction)
     }
 
     boolean transactionStateUpdate(String guid, String transactionState) {

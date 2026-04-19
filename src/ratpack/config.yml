@@ -1,0 +1,6 @@
+server:
+  port: 8443
+
+ssl:
+  certChain: ssl/bhenning.fullchain.pem
+  privateKey: ssl/bhenning.privkey.pem
