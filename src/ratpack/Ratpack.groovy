@@ -879,5 +879,12 @@ ratpack {
         post('graphql') {
             render('[]')
         }
+
+        // ===== STATIC FILES =====
+
+        files {
+            dir "public"
+            indexFiles "index.html"
+        }
     }
 }

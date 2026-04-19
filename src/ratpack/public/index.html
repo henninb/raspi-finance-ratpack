@@ -1,0 +1,1188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Finance Ledger</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Courier+Prime:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:           #07090c;
+  --surface:      #0d1117;
+  --surface2:     #131820;
+  --border:       #1d2535;
+  --border-hi:    #2a3448;
+  --text:         #b8b4ac;
+  --text-dim:     #5a6070;
+  --text-bright:  #e2ddd4;
+  --gold:         #c8941e;
+  --gold-dim:     #6e5010;
+  --green:        #3a8f5e;
+  --green-hi:     #4db87a;
+  --red:          #8f3a3a;
+  --red-hi:       #c05050;
+  --blue:         #3a6a8f;
+  --blue-hi:      #5090c0;
+  --ff-display:   'Cinzel', serif;
+  --ff-mono:      'Courier Prime', monospace;
+}
+
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+html { height: 100%; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--ff-mono);
+  font-size: 13px;
+  line-height: 1.55;
+  min-height: 100vh;
+}
+
+/* ─── Scrollbar ─────────────────────────────────────────── */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--border-hi); }
+::-webkit-scrollbar-thumb:hover { background: var(--text-dim); }
+
+/* ─── Header ────────────────────────────────────────────── */
+.header {
+  position: sticky; top: 0; z-index: 50;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 28px;
+  height: 54px;
+  box-shadow: 0 2px 20px rgba(0,0,0,0.5);
+}
+
+.wordmark {
+  font-family: var(--ff-display);
+  font-weight: 700;
+  font-size: 17px;
+  letter-spacing: 0.14em;
+  color: var(--gold);
+  text-transform: uppercase;
+}
+
+.wordmark sub {
+  font-family: var(--ff-mono);
+  font-size: 9px;
+  letter-spacing: 0.22em;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  font-weight: 400;
+  vertical-align: baseline;
+  margin-left: 10px;
+}
+
+.conn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--ff-display);
+  font-size: 8px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+
+.conn-dot {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: var(--red-hi);
+  flex-shrink: 0;
+  transition: background 0.4s;
+}
+
+.conn-dot.up { background: var(--green-hi); box-shadow: 0 0 6px var(--green); }
+
+/* ─── Nav ───────────────────────────────────────────────── */
+.nav {
+  background: var(--surface);
+  border-bottom: 2px solid var(--gold-dim);
+  display: flex;
+  padding: 0 28px;
+  gap: 0;
+}
+
+.nav-btn {
+  font-family: var(--ff-display);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+  padding: 13px 20px;
+  cursor: pointer;
+  transition: color 0.15s;
+}
+
+.nav-btn:hover { color: var(--text); }
+
+.nav-btn.active {
+  color: var(--gold);
+  border-bottom-color: var(--gold);
+}
+
+/* ─── Layout ────────────────────────────────────────────── */
+.main {
+  padding: 28px;
+  max-width: 1440px;
+  margin: 0 auto;
+}
+
+.view { display: none; }
+.view.active { display: block; }
+
+/* ─── Section header ────────────────────────────────────── */
+.sec-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 18px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border);
+}
+
+.sec-title {
+  font-family: var(--ff-display);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--text-bright);
+}
+
+/* ─── KPI cards ─────────────────────────────────────────── */
+.kpi-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+  margin-bottom: 30px;
+}
+
+.kpi {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  padding: 22px 24px 18px;
+  position: relative;
+  overflow: hidden;
+  animation: fadeUp 0.5s ease both;
+}
+
+.kpi:nth-child(1) { animation-delay: 0.05s; }
+.kpi:nth-child(2) { animation-delay: 0.10s; }
+.kpi:nth-child(3) { animation-delay: 0.15s; }
+.kpi:nth-child(4) { animation-delay: 0.20s; }
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.kpi::before {
+  content: '';
+  position: absolute; top: 0; left: 0; right: 0;
+  height: 2px;
+}
+
+.kpi.gold::before  { background: var(--gold); }
+.kpi.green::before { background: var(--green-hi); }
+.kpi.red::before   { background: var(--red-hi); }
+.kpi.blue::before  { background: var(--blue-hi); }
+
+.kpi-label {
+  font-family: var(--ff-display);
+  font-size: 8.5px;
+  font-weight: 600;
+  letter-spacing: 0.26em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  margin-bottom: 10px;
+}
+
+.kpi-val {
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--text-bright);
+  font-variant-numeric: tabular-nums;
+}
+
+.kpi.green .kpi-val { color: var(--green-hi); }
+.kpi.red   .kpi-val { color: var(--red-hi); }
+.kpi.blue  .kpi-val { color: var(--blue-hi); }
+.kpi.gold  .kpi-val { color: var(--gold); }
+
+/* ─── Table wrapper ─────────────────────────────────────── */
+.tbl-wrap {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  overflow-x: auto;
+}
+
+/* ─── Table ─────────────────────────────────────────────── */
+table { width: 100%; border-collapse: collapse; }
+
+thead th {
+  font-family: var(--ff-display);
+  font-size: 8.5px;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  padding: 10px 14px;
+  text-align: left;
+  background: var(--surface2);
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+  user-select: none;
+}
+
+thead th.r { text-align: right; }
+
+tbody tr {
+  border-bottom: 1px solid var(--border);
+  transition: background 0.1s;
+}
+
+tbody tr:last-child { border-bottom: none; }
+tbody tr:hover { background: var(--surface2); }
+
+tbody td {
+  padding: 9px 14px;
+  font-size: 12px;
+  color: var(--text);
+  white-space: nowrap;
+}
+
+tbody td.r  { text-align: right; font-variant-numeric: tabular-nums; }
+tbody td.hi { color: var(--text-bright); }
+
+.pos { color: var(--green-hi) !important; }
+.neg { color: var(--red-hi)   !important; }
+
+/* ─── State badges ──────────────────────────────────────── */
+.badge {
+  display: inline-block;
+  font-family: var(--ff-display);
+  font-size: 7.5px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  padding: 2px 8px 2px 7px;
+  border: 1px solid;
+  cursor: pointer;
+  user-select: none;
+  transition: opacity 0.15s;
+}
+
+.badge:hover { opacity: 0.75; }
+.b-cleared     { color: var(--green-hi); border-color: var(--green); background: rgba(58,143,94,0.08); }
+.b-outstanding { color: #d4a040;         border-color: #7d5c17;      background: rgba(200,148,30,0.07); }
+.b-future      { color: var(--blue-hi);  border-color: var(--blue);  background: rgba(58,106,143,0.09); }
+.b-undefined   { color: var(--text-dim); border-color: var(--border);}
+
+/* ─── Buttons ───────────────────────────────────────────── */
+.btn {
+  font-family: var(--ff-display);
+  font-size: 8.5px;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  padding: 8px 16px;
+  cursor: pointer;
+  border: 1px solid var(--gold-dim);
+  background: transparent;
+  color: var(--gold);
+  transition: background 0.15s, color 0.15s;
+  white-space: nowrap;
+}
+
+.btn:hover { background: var(--gold); color: var(--bg); }
+
+.btn-sm { font-size: 8px; padding: 5px 11px; }
+
+.btn-del { border-color: #4a1818; color: var(--red-hi); }
+.btn-del:hover { background: var(--red-hi); color: var(--bg); }
+
+.btn-ghost { border-color: var(--border-hi); color: var(--text-dim); }
+.btn-ghost:hover { background: var(--border-hi); color: var(--text); }
+
+/* ─── Controls bar ──────────────────────────────────────── */
+.controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+
+.ctrl-label {
+  font-family: var(--ff-display);
+  font-size: 8.5px;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  white-space: nowrap;
+}
+
+.ctrl-select {
+  background: var(--surface);
+  border: 1px solid var(--border-hi);
+  color: var(--text-bright);
+  font-family: var(--ff-mono);
+  font-size: 12px;
+  padding: 7px 10px;
+  outline: none;
+  cursor: pointer;
+  min-width: 240px;
+  transition: border-color 0.15s;
+}
+
+.ctrl-select:focus { border-color: var(--gold-dim); }
+
+.ctrl-summary {
+  font-size: 11px;
+  color: var(--text-dim);
+  letter-spacing: 0.03em;
+  margin-left: auto;
+}
+
+/* ─── Modal ─────────────────────────────────────────────── */
+.overlay {
+  display: none;
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.72);
+  z-index: 100;
+  align-items: center;
+  justify-content: center;
+}
+
+.overlay.open { display: flex; }
+
+.modal {
+  background: var(--surface);
+  border: 1px solid var(--gold-dim);
+  width: 540px;
+  max-width: 96vw;
+  max-height: 92vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.7);
+  animation: modalIn 0.18s ease;
+}
+
+@keyframes modalIn {
+  from { opacity: 0; transform: scale(0.97); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+.modal-narrow { width: 420px; }
+
+.modal-head {
+  padding: 18px 24px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.modal-title {
+  font-family: var(--ff-display);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--gold);
+}
+
+.modal-x {
+  background: none; border: none;
+  color: var(--text-dim);
+  font-family: var(--ff-mono);
+  font-size: 20px; line-height: 1;
+  cursor: pointer;
+  padding: 0 2px;
+}
+
+.modal-x:hover { color: var(--text-bright); }
+
+.modal-body { padding: 24px; }
+.modal-foot {
+  padding: 16px 24px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+/* ─── Form ──────────────────────────────────────────────── */
+.fg { display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px; }
+.fg:last-child { margin-bottom: 0; }
+
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0 16px;
+}
+
+.span2 { grid-column: 1 / -1; }
+
+.fl {
+  font-family: var(--ff-display);
+  font-size: 8.5px;
+  font-weight: 600;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+
+.fi, .fs {
+  background: var(--bg);
+  border: 1px solid var(--border-hi);
+  color: var(--text-bright);
+  font-family: var(--ff-mono);
+  font-size: 12px;
+  padding: 8px 10px;
+  outline: none;
+  width: 100%;
+  transition: border-color 0.15s;
+  -webkit-appearance: none;
+}
+
+.fi:focus, .fs:focus { border-color: var(--gold-dim); }
+
+.fs option { background: var(--surface2); }
+
+/* ─── Toast ─────────────────────────────────────────────── */
+#toast {
+  position: fixed;
+  bottom: 24px; right: 24px;
+  background: var(--surface2);
+  border: 1px solid var(--border-hi);
+  border-left: 3px solid var(--gold);
+  padding: 11px 20px;
+  font-size: 12px;
+  color: var(--text-bright);
+  z-index: 200;
+  opacity: 0;
+  transform: translateX(10px);
+  transition: opacity 0.2s, transform 0.2s;
+  pointer-events: none;
+  max-width: 320px;
+}
+
+#toast.show { opacity: 1; transform: translateX(0); }
+#toast.err  { border-left-color: var(--red-hi); }
+
+/* ─── State / empty ─────────────────────────────────────── */
+.placeholder {
+  padding: 48px;
+  text-align: center;
+  color: var(--text-dim);
+  font-family: var(--ff-display);
+  font-size: 9.5px;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+}
+
+/* ─── Responsive ────────────────────────────────────────── */
+@media (max-width: 800px) {
+  .kpi-row { grid-template-columns: 1fr 1fr; }
+  .nav-btn { padding: 13px 12px; font-size: 9px; }
+  .main { padding: 16px; }
+}
+
+@media (max-width: 500px) {
+  .kpi-row { grid-template-columns: 1fr; }
+  .form-grid { grid-template-columns: 1fr; }
+  .span2 { grid-column: 1; }
+  .ctrl-summary { display: none; }
+}
+</style>
+</head>
+<body>
+
+<!-- ── Header ─────────────────────────────────────────────── -->
+<header class="header">
+  <div class="wordmark">Finance Ledger<sub>Personal Finance System</sub></div>
+  <div class="conn">
+    <div class="conn-dot" id="dot"></div>
+    <span id="conn-txt">Connecting</span>
+  </div>
+</header>
+
+<!-- ── Nav ────────────────────────────────────────────────── -->
+<nav class="nav">
+  <button class="nav-btn active" data-view="dashboard">Dashboard</button>
+  <button class="nav-btn"        data-view="accounts">Accounts</button>
+  <button class="nav-btn"        data-view="transactions">Transactions</button>
+  <button class="nav-btn"        data-view="payments">Payments</button>
+  <button class="nav-btn"        data-view="categories">Categories</button>
+</nav>
+
+<!-- ── Main ───────────────────────────────────────────────── -->
+<main class="main">
+
+  <!-- Dashboard -->
+  <section class="view active" id="view-dashboard">
+    <div class="sec-head">
+      <span class="sec-title">Financial Overview</span>
+      <button class="btn btn-sm" onclick="loadDashboard()">Refresh</button>
+    </div>
+    <div class="kpi-row" id="kpi-row">
+      <div class="placeholder" style="grid-column:1/-1">Loading…</div>
+    </div>
+    <div class="sec-head">
+      <span class="sec-title">Accounts</span>
+    </div>
+    <div class="tbl-wrap" id="dash-tbl">
+      <div class="placeholder">Loading…</div>
+    </div>
+  </section>
+
+  <!-- Accounts -->
+  <section class="view" id="view-accounts">
+    <div class="sec-head">
+      <span class="sec-title">Accounts</span>
+      <button class="btn btn-sm" onclick="openModal('acct-modal')">+ New Account</button>
+    </div>
+    <div class="tbl-wrap" id="accts-tbl">
+      <div class="placeholder">Loading…</div>
+    </div>
+  </section>
+
+  <!-- Transactions -->
+  <section class="view" id="view-transactions">
+    <div class="sec-head">
+      <span class="sec-title">Transactions</span>
+      <button class="btn btn-sm" onclick="openTxnModal()">+ New Transaction</button>
+    </div>
+    <div class="controls">
+      <span class="ctrl-label">Account</span>
+      <select class="ctrl-select" id="acct-sel" onchange="loadTransactions(this.value)">
+        <option value="">— Select Account —</option>
+      </select>
+      <span class="ctrl-summary" id="txn-summary"></span>
+    </div>
+    <div class="tbl-wrap" id="txns-tbl">
+      <div class="placeholder">Select an account above to load transactions.</div>
+    </div>
+  </section>
+
+  <!-- Payments -->
+  <section class="view" id="view-payments">
+    <div class="sec-head">
+      <span class="sec-title">Payments</span>
+      <button class="btn btn-sm" onclick="openPayModal()">+ New Payment</button>
+    </div>
+    <div class="tbl-wrap" id="pays-tbl">
+      <div class="placeholder">Loading…</div>
+    </div>
+  </section>
+
+  <!-- Categories -->
+  <section class="view" id="view-categories">
+    <div class="sec-head">
+      <span class="sec-title">Categories</span>
+      <button class="btn btn-sm" onclick="openModal('cat-modal')">+ New Category</button>
+    </div>
+    <div class="tbl-wrap" id="cats-tbl">
+      <div class="placeholder">Loading…</div>
+    </div>
+  </section>
+
+</main>
+
+<!-- ── Transaction Modal ───────────────────────────────────── -->
+<div class="overlay" id="txn-modal">
+  <div class="modal">
+    <div class="modal-head">
+      <span class="modal-title" id="txn-modal-title">New Transaction</span>
+      <button class="modal-x" onclick="closeModal('txn-modal')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="fg span2">
+          <label class="fl">Account</label>
+          <select class="fs" id="f-acct"></select>
+        </div>
+        <div class="fg">
+          <label class="fl">Date</label>
+          <input type="date" class="fi" id="f-date">
+        </div>
+        <div class="fg">
+          <label class="fl">Amount</label>
+          <input type="number" step="0.01" class="fi" id="f-amt" placeholder="0.00">
+        </div>
+        <div class="fg span2">
+          <label class="fl">Description</label>
+          <input type="text" class="fi" id="f-desc" placeholder="Merchant / payee">
+        </div>
+        <div class="fg">
+          <label class="fl">Category</label>
+          <input type="text" class="fi" id="f-cat" placeholder="e.g. groceries" list="cat-list">
+          <datalist id="cat-list"></datalist>
+        </div>
+        <div class="fg">
+          <label class="fl">State</label>
+          <select class="fs" id="f-state">
+            <option value="outstanding">Outstanding</option>
+            <option value="cleared">Cleared</option>
+            <option value="future">Future</option>
+          </select>
+        </div>
+        <div class="fg span2">
+          <label class="fl">Notes</label>
+          <input type="text" class="fi" id="f-notes" placeholder="Optional">
+        </div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-sm btn-ghost" onclick="closeModal('txn-modal')">Cancel</button>
+      <button class="btn btn-sm" onclick="saveTxn()">Save Transaction</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Account Modal ───────────────────────────────────────── -->
+<div class="overlay" id="acct-modal">
+  <div class="modal modal-narrow">
+    <div class="modal-head">
+      <span class="modal-title">New Account</span>
+      <button class="modal-x" onclick="closeModal('acct-modal')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="fg">
+        <label class="fl">Account Name Owner</label>
+        <input type="text" class="fi" id="fa-name" placeholder="e.g. chase_brian">
+      </div>
+      <div class="fg">
+        <label class="fl">Account Type</label>
+        <select class="fs" id="fa-type">
+          <option value="credit">Credit</option>
+          <option value="debit">Debit</option>
+        </select>
+      </div>
+      <div class="fg">
+        <label class="fl">Moniker</label>
+        <input type="text" class="fi" id="fa-moniker" placeholder="Short label">
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-sm btn-ghost" onclick="closeModal('acct-modal')">Cancel</button>
+      <button class="btn btn-sm" onclick="saveAcct()">Save Account</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Payment Modal ───────────────────────────────────────── -->
+<div class="overlay" id="pay-modal">
+  <div class="modal modal-narrow">
+    <div class="modal-head">
+      <span class="modal-title">New Payment</span>
+      <button class="modal-x" onclick="closeModal('pay-modal')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="fg">
+        <label class="fl">Account</label>
+        <select class="fs" id="fp-acct"></select>
+      </div>
+      <div class="fg">
+        <label class="fl">Amount</label>
+        <input type="number" step="0.01" class="fi" id="fp-amt" placeholder="0.00">
+      </div>
+      <div class="fg">
+        <label class="fl">Date</label>
+        <input type="date" class="fi" id="fp-date">
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-sm btn-ghost" onclick="closeModal('pay-modal')">Cancel</button>
+      <button class="btn btn-sm" onclick="savePay()">Save Payment</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Category Modal ──────────────────────────────────────── -->
+<div class="overlay" id="cat-modal">
+  <div class="modal modal-narrow">
+    <div class="modal-head">
+      <span class="modal-title">New Category</span>
+      <button class="modal-x" onclick="closeModal('cat-modal')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="fg">
+        <label class="fl">Category Name</label>
+        <input type="text" class="fi" id="fc-name" placeholder="Category name">
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-sm btn-ghost" onclick="closeModal('cat-modal')">Cancel</button>
+      <button class="btn btn-sm" onclick="saveCat()">Save Category</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Toast ────────────────────────────────────────────────── -->
+<div id="toast"></div>
+
+<script>
+// ── State ──────────────────────────────────────────────────────────────
+const S = {
+  accounts:     [],
+  transactions: [],
+  payments:     [],
+  categories:   [],
+  selAcct:      '',
+  editGuid:     null,
+};
+
+// ── Utilities ──────────────────────────────────────────────────────────
+const $ = id => document.getElementById(id);
+
+function fmt(v) {
+  if (v == null) return '—';
+  return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(Number(v));
+}
+
+function fmtDate(d) {
+  if (!d) return '—';
+  return String(d).split('T')[0];
+}
+
+function today() {
+  return new Date().toISOString().split('T')[0];
+}
+
+function genGuid() {
+  return ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g, c =>
+    (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16));
+}
+
+function esc(s) {
+  return s == null ? '' : String(s)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function amtClass(v) { return Number(v) < 0 ? 'neg' : 'pos'; }
+
+let toastTimer;
+function toast(msg, err = false) {
+  const el = $('toast');
+  el.textContent = msg;
+  el.className = 'show' + (err ? ' err' : '');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.className = '', 3400);
+}
+
+function setConn(ok) {
+  $('dot').className = 'conn-dot' + (ok ? ' up' : '');
+  $('conn-txt').textContent = ok ? 'Connected' : 'Offline';
+}
+
+// ── API ────────────────────────────────────────────────────────────────
+async function api(path, opts = {}) {
+  const res = await fetch(path, {
+    headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', ...(opts.headers||{}) },
+    ...opts,
+  }).catch(e => { setConn(false); throw e; });
+  setConn(true);
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.error || `HTTP ${res.status}`);
+  }
+  const txt = await res.text();
+  return txt ? JSON.parse(txt) : {};
+}
+
+// ── Navigation ─────────────────────────────────────────────────────────
+document.querySelectorAll('.nav-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+    btn.classList.add('active');
+    const name = btn.dataset.view;
+    $('view-' + name).classList.add('active');
+    if      (name === 'dashboard')    loadDashboard();
+    else if (name === 'accounts')     loadAccounts();
+    else if (name === 'transactions') initTxnView();
+    else if (name === 'payments')     loadPayments();
+    else if (name === 'categories')   loadCategories();
+  });
+});
+
+// ── Modal helpers ──────────────────────────────────────────────────────
+function openModal(id) { $(id).classList.add('open'); }
+function closeModal(id) { $(id).classList.remove('open'); }
+
+document.querySelectorAll('.overlay').forEach(o =>
+  o.addEventListener('click', e => { if (e.target === o) o.classList.remove('open'); }));
+
+// ── Dashboard ──────────────────────────────────────────────────────────
+async function loadDashboard() {
+  try {
+    const [summary, accounts] = await Promise.all([
+      api('/account/totals'),
+      api('/account/select/active'),
+    ]);
+    S.accounts = accounts || [];
+
+    $('kpi-row').innerHTML = `
+      <div class="kpi gold"><div class="kpi-label">Total</div><div class="kpi-val">${fmt(summary.totals)}</div></div>
+      <div class="kpi green"><div class="kpi-label">Cleared</div><div class="kpi-val">${fmt(summary.totalsCleared)}</div></div>
+      <div class="kpi red"><div class="kpi-label">Outstanding</div><div class="kpi-val">${fmt(summary.totalsOutstanding)}</div></div>
+      <div class="kpi blue"><div class="kpi-label">Future</div><div class="kpi-val">${fmt(summary.totalsFuture)}</div></div>
+    `;
+
+    renderAcctTable('dash-tbl', S.accounts, true);
+  } catch (e) {
+    $('kpi-row').innerHTML = `<div class="placeholder" style="grid-column:1/-1">Error: ${esc(e.message)}</div>`;
+  }
+}
+
+// ── Accounts ───────────────────────────────────────────────────────────
+async function loadAccounts() {
+  try {
+    S.accounts = await api('/account/select/active');
+    renderAcctTable('accts-tbl', S.accounts, false);
+  } catch (e) {
+    $('accts-tbl').innerHTML = `<div class="placeholder">Error: ${esc(e.message)}</div>`;
+  }
+}
+
+function renderAcctTable(id, accounts, clickable) {
+  const el = $(id);
+  if (!accounts || !accounts.length) {
+    el.innerHTML = '<div class="placeholder">No accounts found.</div>';
+    return;
+  }
+  const rows = accounts.map(a => `
+    <tr${clickable ? ` onclick="jumpToAcct('${esc(a.accountNameOwner)}')" style="cursor:pointer"` : ''}>
+      <td class="hi">${esc(a.accountNameOwner)}</td>
+      <td>${esc(a.accountType) || '—'}</td>
+      <td>${esc(a.moniker) || '—'}</td>
+      <td class="r ${amtClass(a.cleared)}">${fmt(a.cleared)}</td>
+      <td class="r ${amtClass(a.outstanding)}">${fmt(a.outstanding)}</td>
+      <td class="r ${amtClass(a.future)}">${fmt(a.future)}</td>
+      ${!clickable ? `<td><button class="btn btn-sm btn-del" onclick="delAcct(event,'${esc(a.accountNameOwner)}')">Delete</button></td>` : ''}
+    </tr>`).join('');
+  el.innerHTML = `<table>
+    <thead><tr>
+      <th>Account</th><th>Type</th><th>Moniker</th>
+      <th class="r">Cleared</th><th class="r">Outstanding</th><th class="r">Future</th>
+      ${!clickable ? '<th></th>' : ''}
+    </tr></thead>
+    <tbody>${rows}</tbody>
+  </table>`;
+}
+
+function jumpToAcct(name) {
+  S.selAcct = name;
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.querySelector('[data-view="transactions"]').classList.add('active');
+  $('view-transactions').classList.add('active');
+  initTxnView().then(() => {
+    $('acct-sel').value = name;
+    loadTransactions(name);
+  });
+}
+
+async function saveAcct() {
+  const name    = $('fa-name').value.trim();
+  const type    = $('fa-type').value;
+  const moniker = $('fa-moniker').value.trim();
+  if (!name) { toast('Account name is required.', true); return; }
+  try {
+    await api('/account', { method: 'POST',
+      body: JSON.stringify({ accountNameOwner: name, accountType: type, moniker, activeStatus: true }) });
+    closeModal('acct-modal');
+    toast('Account created.');
+    loadAccounts();
+    S.accounts = [];
+  } catch (e) { toast('Error: ' + e.message, true); }
+}
+
+async function delAcct(ev, name) {
+  ev.stopPropagation();
+  if (!confirm(`Delete account "${name}"? This cannot be undone.`)) return;
+  try {
+    await api('/account/' + encodeURIComponent(name), { method: 'DELETE' });
+    toast('Account deleted.');
+    loadAccounts();
+    S.accounts = [];
+  } catch (e) { toast('Error: ' + e.message, true); }
+}
+
+// ── Transactions ───────────────────────────────────────────────────────
+async function initTxnView() {
+  if (!S.accounts.length) {
+    S.accounts = await api('/account/select/active').catch(() => []);
+  }
+  populateCatDatalist();
+  const opts = S.accounts.map(a =>
+    `<option value="${esc(a.accountNameOwner)}">${esc(a.accountNameOwner)}</option>`).join('');
+  $('acct-sel').innerHTML  = '<option value="">— Select Account —</option>' + opts;
+  $('f-acct').innerHTML    = opts;
+  $('fp-acct').innerHTML   = opts;
+  if (S.selAcct) $('acct-sel').value = S.selAcct;
+}
+
+async function loadTransactions(acct) {
+  if (!acct) return;
+  S.selAcct = acct;
+  $('txns-tbl').innerHTML = '<div class="placeholder">Loading…</div>';
+  try {
+    const [txns, sum] = await Promise.all([
+      api('/transaction/account/select/' + encodeURIComponent(acct)),
+      api('/transaction/account/totals/' + encodeURIComponent(acct)),
+    ]);
+    S.transactions = txns || [];
+    $('txn-summary').textContent =
+      `Cleared ${fmt(sum.totalsCleared)}  ·  Outstanding ${fmt(sum.totalsOutstanding)}  ·  Future ${fmt(sum.totalsFuture)}`;
+    renderTxnTable();
+  } catch (e) {
+    $('txns-tbl').innerHTML = `<div class="placeholder">Error: ${esc(e.message)}</div>`;
+  }
+}
+
+const STATE_NEXT = { outstanding: 'cleared', cleared: 'future', future: 'outstanding', undefined: 'outstanding' };
+const STATE_CLS  = { cleared: 'b-cleared', outstanding: 'b-outstanding', future: 'b-future' };
+
+function renderTxnTable() {
+  const el = $('txns-tbl');
+  if (!S.transactions.length) { el.innerHTML = '<div class="placeholder">No transactions found.</div>'; return; }
+  const rows = S.transactions.map(t => {
+    const sc = STATE_CLS[t.transactionState] || 'b-undefined';
+    return `<tr>
+      <td>${fmtDate(t.transactionDate)}</td>
+      <td class="hi">${esc(t.description)}</td>
+      <td>${esc(t.category) || '—'}</td>
+      <td class="r ${amtClass(t.amount)}">${fmt(t.amount)}</td>
+      <td><span class="badge ${sc}" title="Click to cycle state" onclick="cycleState('${t.guid}','${t.transactionState}')">${esc(t.transactionState) || '?'}</span></td>
+      <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis">${esc(t.notes) || ''}</td>
+      <td>
+        <button class="btn btn-sm" onclick="editTxn('${t.guid}')">Edit</button>
+        <button class="btn btn-sm btn-del" onclick="delTxn('${t.guid}')" style="margin-left:5px">Del</button>
+      </td>
+    </tr>`;
+  }).join('');
+  el.innerHTML = `<table>
+    <thead><tr>
+      <th>Date</th><th>Description</th><th>Category</th>
+      <th class="r">Amount</th><th>State</th><th>Notes</th><th></th>
+    </tr></thead>
+    <tbody>${rows}</tbody>
+  </table>`;
+}
+
+async function cycleState(guid, cur) {
+  const next = STATE_NEXT[cur] || 'outstanding';
+  try {
+    await api(`/transaction/state/update/${guid}/${next}`, { method: 'PUT', body: '{}' });
+    const t = S.transactions.find(x => x.guid === guid);
+    if (t) t.transactionState = next;
+    renderTxnTable();
+    toast(`State → ${next}`);
+  } catch (e) { toast('Error: ' + e.message, true); }
+}
+
+function openTxnModal() {
+  S.editGuid = null;
+  $('txn-modal-title').textContent = 'New Transaction';
+  $('f-date').value  = today();
+  $('f-amt').value   = '';
+  $('f-desc').value  = '';
+  $('f-cat').value   = '';
+  $('f-state').value = 'outstanding';
+  $('f-notes').value = '';
+  if (S.selAcct) $('f-acct').value = S.selAcct;
+  openModal('txn-modal');
+}
+
+function editTxn(guid) {
+  const t = S.transactions.find(x => x.guid === guid);
+  if (!t) return;
+  S.editGuid = guid;
+  $('txn-modal-title').textContent = 'Edit Transaction';
+  $('f-date').value  = fmtDate(t.transactionDate);
+  $('f-amt').value   = t.amount;
+  $('f-desc').value  = t.description || '';
+  $('f-cat').value   = t.category || '';
+  $('f-state').value = t.transactionState || 'outstanding';
+  $('f-notes').value = t.notes || '';
+  $('f-acct').value  = t.accountNameOwner || S.selAcct;
+  openModal('txn-modal');
+}
+
+async function saveTxn() {
+  const accountNameOwner  = $('f-acct').value;
+  const transactionDate   = $('f-date').value;
+  const amount            = parseFloat($('f-amt').value);
+  const description       = $('f-desc').value.trim();
+  const category          = $('f-cat').value.trim();
+  const transactionState  = $('f-state').value;
+  const notes             = $('f-notes').value.trim();
+
+  if (!accountNameOwner || !transactionDate || isNaN(amount) || !description) {
+    toast('Account, date, amount, and description are required.', true);
+    return;
+  }
+
+  const body = { accountNameOwner, transactionDate, amount, description, category, transactionState, notes, activeStatus: true };
+
+  try {
+    if (S.editGuid) {
+      body.guid = S.editGuid;
+      await api(`/transaction/${S.editGuid}`, { method: 'PUT', body: JSON.stringify(body) });
+      toast('Transaction updated.');
+    } else {
+      body.guid = genGuid();
+      await api('/transaction/insert', { method: 'POST', body: JSON.stringify(body) });
+      toast('Transaction added.');
+    }
+    closeModal('txn-modal');
+    loadTransactions(S.selAcct || accountNameOwner);
+  } catch (e) { toast('Error: ' + e.message, true); }
+}
+
+async function delTxn(guid) {
+  if (!confirm('Delete this transaction?')) return;
+  try {
+    await api('/transaction/delete/' + guid, { method: 'DELETE' });
+    toast('Transaction deleted.');
+    loadTransactions(S.selAcct);
+  } catch (e) { toast('Error: ' + e.message, true); }
+}
+
+// ── Payments ───────────────────────────────────────────────────────────
+async function loadPayments() {
+  try {
+    S.payments = await api('/payment/select');
+    renderPayTable();
+  } catch (e) {
+    $('pays-tbl').innerHTML = `<div class="placeholder">Error: ${esc(e.message)}</div>`;
+  }
+}
+
+function renderPayTable() {
+  const el = $('pays-tbl');
+  if (!S.payments || !S.payments.length) { el.innerHTML = '<div class="placeholder">No payments found.</div>'; return; }
+  const rows = S.payments.map(p => `
+    <tr>
+      <td class="r">${p.paymentId}</td>
+      <td class="hi">${esc(p.accountNameOwner)}</td>
+      <td class="r pos">${fmt(p.amount)}</td>
+      <td>${fmtDate(p.transactionDate)}</td>
+      <td><button class="btn btn-sm btn-del" onclick="delPay(${p.paymentId})">Delete</button></td>
+    </tr>`).join('');
+  el.innerHTML = `<table>
+    <thead><tr>
+      <th class="r">ID</th><th>Account</th>
+      <th class="r">Amount</th><th>Date</th><th></th>
+    </tr></thead>
+    <tbody>${rows}</tbody>
+  </table>`;
+}
+
+async function openPayModal() {
+  if (!S.accounts.length) S.accounts = await api('/account/select/active').catch(() => []);
+  const opts = S.accounts.map(a =>
+    `<option value="${esc(a.accountNameOwner)}">${esc(a.accountNameOwner)}</option>`).join('');
+  $('fp-acct').innerHTML = opts;
+  $('fp-amt').value  = '';
+  $('fp-date').value = today();
+  openModal('pay-modal');
+}
+
+async function savePay() {
+  const accountNameOwner = $('fp-acct').value;
+  const amount           = parseFloat($('fp-amt').value);
+  const transactionDate  = $('fp-date').value;
+  if (!accountNameOwner || isNaN(amount)) { toast('Fill in all fields.', true); return; }
+  try {
+    await api('/payment/insert', { method: 'POST',
+      body: JSON.stringify({ accountNameOwner, amount, transactionDate, activeStatus: true }) });
+    closeModal('pay-modal');
+    toast('Payment saved.');
+    loadPayments();
+  } catch (e) { toast('Error: ' + e.message, true); }
+}
+
+async function delPay(id) {
+  if (!confirm(`Delete payment #${id}?`)) return;
+  try {
+    await api('/payment/' + id, { method: 'DELETE' });
+    toast('Payment deleted.');
+    loadPayments();
+  } catch (e) { toast('Error: ' + e.message, true); }
+}
+
+// ── Categories ─────────────────────────────────────────────────────────
+async function loadCategories() {
+  try {
+    S.categories = await api('/categories');
+    renderCatTable();
+    populateCatDatalist();
+  } catch (e) {
+    $('cats-tbl').innerHTML = `<div class="placeholder">Error: ${esc(e.message)}</div>`;
+  }
+}
+
+function renderCatTable() {
+  const el = $('cats-tbl');
+  if (!S.categories || !S.categories.length) { el.innerHTML = '<div class="placeholder">No categories found.</div>'; return; }
+  const rows = S.categories.map(c => `
+    <tr>
+      <td class="hi">${esc(c.categoryName)}</td>
+      <td><button class="btn btn-sm btn-del" onclick="delCat('${esc(c.categoryName)}')">Delete</button></td>
+    </tr>`).join('');
+  el.innerHTML = `<table>
+    <thead><tr><th>Category</th><th></th></tr></thead>
+    <tbody>${rows}</tbody>
+  </table>`;
+}
+
+function populateCatDatalist() {
+  const dl = $('cat-list');
+  if (dl) dl.innerHTML = S.categories.map(c => `<option value="${esc(c.categoryName)}">`).join('');
+}
+
+async function saveCat() {
+  const name = $('fc-name').value.trim();
+  if (!name) { toast('Category name is required.', true); return; }
+  try {
+    await api('/category', { method: 'POST', body: JSON.stringify({ categoryName: name }) });
+    closeModal('cat-modal');
+    toast('Category created.');
+    loadCategories();
+  } catch (e) { toast('Error: ' + e.message, true); }
+}
+
+async function delCat(name) {
+  if (!confirm(`Delete category "${name}"?`)) return;
+  try {
+    await api('/category/' + encodeURIComponent(name), { method: 'DELETE' });
+    toast('Category deleted.');
+    loadCategories();
+  } catch (e) { toast('Error: ' + e.message, true); }
+}
+
+// ── Init ───────────────────────────────────────────────────────────────
+loadDashboard();
+</script>
+</body>
+</html>
