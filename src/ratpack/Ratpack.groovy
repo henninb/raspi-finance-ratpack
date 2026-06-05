@@ -5,6 +5,9 @@ import io.netty.handler.ssl.SslContextBuilder
 import org.yaml.snakeyaml.Yaml
 import finance.domain.Category
 import finance.domain.Description
+import finance.domain.FamilyMember
+import finance.domain.MedicalExpense
+import finance.domain.MedicalProvider
 import finance.domain.Parameter
 import finance.domain.Payment
 import finance.domain.PendingTransaction
@@ -16,6 +19,9 @@ import finance.handlers.CorsHandler
 import finance.services.AccountService
 import finance.services.CategoryService
 import finance.services.DescriptionService
+import finance.services.FamilyMemberService
+import finance.services.MedicalExpenseService
+import finance.services.MedicalProviderService
 import finance.services.ParameterService
 import finance.services.PaymentService
 import finance.services.PendingTransactionService
@@ -61,6 +67,9 @@ ratpack {
         bind(ValidationAmountService)
         bind(TransferService)
         bind(PendingTransactionService)
+        bind(FamilyMemberService)
+        bind(MedicalProviderService)
+        bind(MedicalExpenseService)
         bind(ObjectMapper)
     }
 
@@ -871,6 +880,234 @@ ratpack {
                     context.response.status(404)
                     render('{"error":"pending transaction not found"}')
                 }
+            }
+        }
+
+        // ===== FAMILY MEMBER =====
+
+        get('family-member/active') { Context context, FamilyMemberService familyMemberService, ObjectMapper objectMapper ->
+            context.request.getBody().then {
+                render(objectMapper.writeValueAsString(familyMemberService.familyMembers()))
+            }
+        }
+
+        get('family-member/:familyMemberId') { Context context, FamilyMemberService familyMemberService, ObjectMapper objectMapper ->
+            context.request.getBody().then {
+                Long familyMemberId = Long.parseLong(pathTokens["familyMemberId"])
+                FamilyMember familyMember = familyMemberService.familyMember(familyMemberId)
+                if (familyMember) {
+                    render(objectMapper.writeValueAsString(familyMember))
+                } else {
+                    context.response.status(404)
+                    render('{"error":"family member not found"}')
+                }
+            }
+        }
+
+        post('family-member') { Context context, FamilyMemberService familyMemberService, ObjectMapper objectMapper ->
+            context.request.body.then {
+                try {
+                    FamilyMember familyMember = objectMapper.readValue(it.text, FamilyMember)
+                    FamilyMember result = familyMemberService.familyMemberInsert(familyMember)
+                    context.response.status(201)
+                    render(objectMapper.writeValueAsString(result))
+                } catch (RuntimeException e) {
+                    context.response.status(400)
+                    render('{"error":"' + e.message + '"}')
+                }
+            }
+        }
+
+        put('family-member/:familyMemberId') { Context context, FamilyMemberService familyMemberService, ObjectMapper objectMapper ->
+            context.request.body.then {
+                Long familyMemberId = Long.parseLong(pathTokens["familyMemberId"])
+                try {
+                    FamilyMember familyMember = objectMapper.readValue(it.text, FamilyMember)
+                    familyMember.familyMemberId = familyMemberId
+                    FamilyMember result = familyMemberService.familyMemberUpdate(familyMember)
+                    render(objectMapper.writeValueAsString(result))
+                } catch (RuntimeException e) {
+                    context.response.status(404)
+                    render('{"error":"' + e.message + '"}')
+                }
+            }
+        }
+
+        delete('family-member/:familyMemberId') { Context context, FamilyMemberService familyMemberService ->
+            context.request.getBody().then {
+                Long familyMemberId = Long.parseLong(pathTokens["familyMemberId"])
+                boolean deleted = familyMemberService.familyMemberDelete(familyMemberId)
+                if (deleted) {
+                    render('{}')
+                } else {
+                    context.response.status(404)
+                    render('{"error":"family member not found"}')
+                }
+            }
+        }
+
+        // ===== MEDICAL PROVIDER =====
+
+        get('medical-provider/active') { Context context, MedicalProviderService medicalProviderService, ObjectMapper objectMapper ->
+            context.request.getBody().then {
+                render(objectMapper.writeValueAsString(medicalProviderService.medicalProviders()))
+            }
+        }
+
+        get('medical-provider/:providerId') { Context context, MedicalProviderService medicalProviderService, ObjectMapper objectMapper ->
+            context.request.getBody().then {
+                Long providerId = Long.parseLong(pathTokens["providerId"])
+                MedicalProvider medicalProvider = medicalProviderService.medicalProvider(providerId)
+                if (medicalProvider) {
+                    render(objectMapper.writeValueAsString(medicalProvider))
+                } else {
+                    context.response.status(404)
+                    render('{"error":"medical provider not found"}')
+                }
+            }
+        }
+
+        post('medical-provider') { Context context, MedicalProviderService medicalProviderService, ObjectMapper objectMapper ->
+            context.request.body.then {
+                try {
+                    MedicalProvider medicalProvider = objectMapper.readValue(it.text, MedicalProvider)
+                    MedicalProvider result = medicalProviderService.medicalProviderInsert(medicalProvider)
+                    context.response.status(201)
+                    render(objectMapper.writeValueAsString(result))
+                } catch (RuntimeException e) {
+                    context.response.status(400)
+                    render('{"error":"' + e.message + '"}')
+                }
+            }
+        }
+
+        put('medical-provider/:providerId') { Context context, MedicalProviderService medicalProviderService, ObjectMapper objectMapper ->
+            context.request.body.then {
+                Long providerId = Long.parseLong(pathTokens["providerId"])
+                try {
+                    MedicalProvider medicalProvider = objectMapper.readValue(it.text, MedicalProvider)
+                    medicalProvider.providerId = providerId
+                    MedicalProvider result = medicalProviderService.medicalProviderUpdate(medicalProvider)
+                    render(objectMapper.writeValueAsString(result))
+                } catch (RuntimeException e) {
+                    context.response.status(404)
+                    render('{"error":"' + e.message + '"}')
+                }
+            }
+        }
+
+        delete('medical-provider/:providerId') { Context context, MedicalProviderService medicalProviderService ->
+            context.request.getBody().then {
+                Long providerId = Long.parseLong(pathTokens["providerId"])
+                boolean deleted = medicalProviderService.medicalProviderDelete(providerId)
+                if (deleted) {
+                    render('{}')
+                } else {
+                    context.response.status(404)
+                    render('{"error":"medical provider not found"}')
+                }
+            }
+        }
+
+        // ===== MEDICAL EXPENSE =====
+
+        get('medical-expense/active') { Context context, MedicalExpenseService medicalExpenseService, ObjectMapper objectMapper ->
+            context.request.getBody().then {
+                render(objectMapper.writeValueAsString(medicalExpenseService.medicalExpenses()))
+            }
+        }
+
+        // Fixed-segment route must precede the /:medicalExpenseId pattern
+        get('medical-expense/owner/:owner') { Context context, MedicalExpenseService medicalExpenseService, ObjectMapper objectMapper ->
+            context.request.getBody().then {
+                String owner = pathTokens["owner"]
+                render(objectMapper.writeValueAsString(medicalExpenseService.medicalExpensesByOwner(owner)))
+            }
+        }
+
+        get('medical-expense/:medicalExpenseId') { Context context, MedicalExpenseService medicalExpenseService, ObjectMapper objectMapper ->
+            context.request.getBody().then {
+                Long medicalExpenseId = Long.parseLong(pathTokens["medicalExpenseId"])
+                MedicalExpense medicalExpense = medicalExpenseService.medicalExpense(medicalExpenseId)
+                if (medicalExpense) {
+                    render(objectMapper.writeValueAsString(medicalExpense))
+                } else {
+                    context.response.status(404)
+                    render('{"error":"medical expense not found"}')
+                }
+            }
+        }
+
+        post('medical-expense') { Context context, MedicalExpenseService medicalExpenseService, ObjectMapper objectMapper ->
+            context.request.body.then {
+                try {
+                    MedicalExpense medicalExpense = objectMapper.readValue(it.text, MedicalExpense)
+                    MedicalExpense result = medicalExpenseService.medicalExpenseInsert(medicalExpense)
+                    context.response.status(201)
+                    render(objectMapper.writeValueAsString(result))
+                } catch (RuntimeException e) {
+                    context.response.status(400)
+                    render('{"error":"' + e.message + '"}')
+                }
+            }
+        }
+
+        put('medical-expense/:medicalExpenseId') { Context context, MedicalExpenseService medicalExpenseService, ObjectMapper objectMapper ->
+            context.request.body.then {
+                Long medicalExpenseId = Long.parseLong(pathTokens["medicalExpenseId"])
+                try {
+                    MedicalExpense medicalExpense = objectMapper.readValue(it.text, MedicalExpense)
+                    medicalExpense.medicalExpenseId = medicalExpenseId
+                    MedicalExpense result = medicalExpenseService.medicalExpenseUpdate(medicalExpense)
+                    render(objectMapper.writeValueAsString(result))
+                } catch (RuntimeException e) {
+                    context.response.status(404)
+                    render('{"error":"' + e.message + '"}')
+                }
+            }
+        }
+
+        delete('medical-expense/:medicalExpenseId') { Context context, MedicalExpenseService medicalExpenseService ->
+            context.request.getBody().then {
+                Long medicalExpenseId = Long.parseLong(pathTokens["medicalExpenseId"])
+                boolean deleted = medicalExpenseService.medicalExpenseDelete(medicalExpenseId)
+                if (deleted) {
+                    render('{}')
+                } else {
+                    context.response.status(404)
+                    render('{"error":"medical expense not found"}')
+                }
+            }
+        }
+
+        // ===== UUID =====
+
+        post('uuid/generate') { Context context, ObjectMapper objectMapper ->
+            context.request.getBody().then {
+                render(objectMapper.writeValueAsString([
+                    uuid     : UUID.randomUUID().toString(),
+                    timestamp: System.currentTimeMillis(),
+                    source   : "server"
+                ]))
+            }
+        }
+
+        post('uuid/generate/batch') { Context context, ObjectMapper objectMapper ->
+            context.request.getBody().then {
+                String countParam = context.request.queryParams.get("count") ?: "1"
+                int count = Integer.parseInt(countParam)
+                if (count <= 0 || count > 100) {
+                    context.response.status(400)
+                    render('{"error":"count must be between 1 and 100"}')
+                    return
+                }
+                List<String> uuids = (1..count).collect { UUID.randomUUID().toString() }
+                render(objectMapper.writeValueAsString([
+                    uuids    : uuids,
+                    count    : uuids.size(),
+                    timestamp: System.currentTimeMillis(),
+                    source   : "server"
+                ]))
             }
         }
 
