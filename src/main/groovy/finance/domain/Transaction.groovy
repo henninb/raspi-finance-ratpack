@@ -15,7 +15,7 @@ class Transaction {
     //Changed from java.sql.Date to String
     //String transactionDate
     Date transactionDate
-    //Date dueDate
+    Date dueDate
     String description
     String category
     BigDecimal amount
@@ -31,6 +31,14 @@ class Transaction {
         SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd")
         simpleDateFormat.lenient = false
         return simpleDateFormat.format(this.transactionDate)
+    }
+
+    @JsonGetter("dueDate")
+    String jsonGetterDueDate() {
+        if (this.dueDate == null) return null
+        SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd")
+        simpleDateFormat.lenient = false
+        return simpleDateFormat.format(this.dueDate)
     }
 }
 

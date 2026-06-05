@@ -883,7 +883,15 @@ ratpack {
 
         get('validation/amount/active') { Context context, ValidationAmountService validationAmountService, ObjectMapper objectMapper ->
             context.request.getBody().then {
-                render(objectMapper.writeValueAsString(validationAmountService.validationAmounts()))
+                String accountNameOwner = context.request.queryParams.get("accountNameOwner")
+                String transactionState = context.request.queryParams.get("transactionState") ?: "cleared"
+                if (accountNameOwner) {
+                    render(objectMapper.writeValueAsString(
+                        validationAmountService.validationAmountsByAccountAndState(accountNameOwner, transactionState)
+                    ))
+                } else {
+                    render(objectMapper.writeValueAsString(validationAmountService.validationAmounts()))
+                }
             }
         }
 

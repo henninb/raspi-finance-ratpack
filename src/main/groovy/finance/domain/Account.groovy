@@ -14,7 +14,13 @@ class Account {
     BigDecimal outstanding
     BigDecimal future
     BigDecimal cleared
+    Short billingStatementCloseDay
+    Short billingGracePeriodDays
+    Short billingDueDaySameMonth
+    Short billingDueDayNextMonth
+    String billingCycleWeekendShift
     Timestamp dateClosed
+    Timestamp validationDate
     Timestamp dateUpdated = new Timestamp(System.currentTimeMillis())
     Timestamp dateAdded = new Timestamp(System.currentTimeMillis())
 }

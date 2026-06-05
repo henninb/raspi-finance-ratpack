@@ -35,6 +35,15 @@ public class Tables {
         public final Field<Boolean> ACTIVE_STATUS = createField(DSL.name("active_status"), SQLDataType.BOOLEAN);
         public final Field<String> MONIKER = createField(DSL.name("moniker"), SQLDataType.VARCHAR);
         public final Field<Boolean> PAYMENT_REQUIRED = createField(DSL.name("payment_required"), SQLDataType.BOOLEAN);
+        public final Field<java.sql.Timestamp> VALIDATION_DATE = createField(DSL.name("validation_date"), SQLDataType.TIMESTAMP);
+        public final Field<BigDecimal> OUTSTANDING = createField(DSL.name("outstanding"), SQLDataType.DECIMAL);
+        public final Field<BigDecimal> FUTURE = createField(DSL.name("future"), SQLDataType.DECIMAL);
+        public final Field<BigDecimal> CLEARED = createField(DSL.name("cleared"), SQLDataType.DECIMAL);
+        public final Field<Short> BILLING_STATEMENT_CLOSE_DAY = createField(DSL.name("billing_statement_close_day"), SQLDataType.SMALLINT);
+        public final Field<Short> BILLING_GRACE_PERIOD_DAYS = createField(DSL.name("billing_grace_period_days"), SQLDataType.SMALLINT);
+        public final Field<Short> BILLING_DUE_DAY_SAME_MONTH = createField(DSL.name("billing_due_day_same_month"), SQLDataType.SMALLINT);
+        public final Field<Short> BILLING_DUE_DAY_NEXT_MONTH = createField(DSL.name("billing_due_day_next_month"), SQLDataType.SMALLINT);
+        public final Field<String> BILLING_CYCLE_WEEKEND_SHIFT = createField(DSL.name("billing_cycle_weekend_shift"), SQLDataType.VARCHAR);
 
         public TAccount() { super(DSL.name("t_account")); }
     }
@@ -163,6 +172,7 @@ public class Tables {
         public final Field<Boolean> ACTIVE_STATUS = createField(DSL.name("active_status"), SQLDataType.BOOLEAN);
         public final Field<String> REOCCURRING_TYPE = createField(DSL.name("reoccurring_type"), SQLDataType.VARCHAR);
         public final Field<String> TRANSACTION_TYPE = createField(DSL.name("transaction_type"), SQLDataType.VARCHAR);
+        public final Field<java.sql.Date> DUE_DATE = createField(DSL.name("due_date"), SQLDataType.DATE);
         public final Field<java.sql.Timestamp> DATE_UPDATED = createField(DSL.name("date_updated"), SQLDataType.TIMESTAMP);
         public final Field<java.sql.Timestamp> DATE_ADDED = createField(DSL.name("date_added"), SQLDataType.TIMESTAMP);
 
@@ -199,6 +209,7 @@ public class Tables {
         public final Field<BigDecimal> AMOUNT = createField(DSL.name("amount"), SQLDataType.DECIMAL);
         public final Field<String> TRANSACTION_STATE = createField(DSL.name("transaction_state"), SQLDataType.VARCHAR);
         public final Field<Boolean> ACTIVE_STATUS = createField(DSL.name("active_status"), SQLDataType.BOOLEAN);
+        public final Field<java.sql.Timestamp> VALIDATION_DATE = createField(DSL.name("validation_date"), SQLDataType.TIMESTAMP);
 
         public TValidationAmount() { super(DSL.name("t_validation_amount")); }
     }
