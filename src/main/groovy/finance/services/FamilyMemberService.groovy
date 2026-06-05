@@ -53,4 +53,30 @@ class FamilyMemberService implements Service {
         }
         return familyMemberRepository.familyMemberDelete(familyMemberId)
     }
+
+    List<FamilyMember> familyMembersByOwner(String owner) {
+        return familyMemberRepository.familyMembersByOwner(owner)
+    }
+
+    List<FamilyMember> familyMembersByOwnerAndRelationship(String owner, String relationship) {
+        return familyMemberRepository.familyMembersByOwnerAndRelationship(owner, relationship)
+    }
+
+    FamilyMember familyMemberActivate(Long familyMemberId) {
+        FamilyMember existing = familyMemberRepository.familyMember(familyMemberId)
+        if (!existing) {
+            throw new RuntimeException("family member not found: ${familyMemberId}")
+        }
+        familyMemberRepository.familyMemberActivate(familyMemberId)
+        return familyMemberRepository.familyMember(familyMemberId)
+    }
+
+    FamilyMember familyMemberDeactivate(Long familyMemberId) {
+        FamilyMember existing = familyMemberRepository.familyMember(familyMemberId)
+        if (!existing) {
+            throw new RuntimeException("family member not found: ${familyMemberId}")
+        }
+        familyMemberRepository.familyMemberDeactivate(familyMemberId)
+        return familyMemberRepository.familyMember(familyMemberId)
+    }
 }

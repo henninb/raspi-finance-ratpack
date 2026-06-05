@@ -7,6 +7,7 @@ import groovy.util.logging.Log
 import ratpack.core.service.Service
 
 import javax.inject.Inject
+import java.math.RoundingMode
 import java.sql.Timestamp
 
 @Log
@@ -84,5 +85,13 @@ class AccountService implements Service {
         }
         accountRepository.accountActivate(accountNameOwner)
         return accountRepository.account(accountNameOwner)
+    }
+
+    void updateValidationDatesForAllAccounts() {
+        accountRepository.updateValidationDates()
+    }
+
+    BigDecimal sumOfAllTransactionsByTransactionState(String transactionState) {
+        return accountRepository.sumTransactionsByState(transactionState).setScale(2, RoundingMode.HALF_UP)
     }
 }

@@ -1,6 +1,7 @@
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.zaxxer.hikari.HikariConfig
 import finance.domain.Account
+import finance.domain.BonusProgress
 import io.netty.handler.ssl.SslContextBuilder
 import org.yaml.snakeyaml.Yaml
 import finance.domain.Category
@@ -199,6 +200,14 @@ ratpack {
             }
         }
 
+        get('account/validation/refresh') { Context context, AccountService accountService ->
+            context.request.getBody().then {
+                accountService.updateValidationDatesForAllAccounts()
+                context.response.status(204)
+                render('')
+            }
+        }
+
         // ===== TRANSACTION =====
 
         get('transaction/account/totals/:accountNameOwner') { Context context, SummaryService summaryService, ObjectMapper objectMapper ->
@@ -245,6 +254,22 @@ ratpack {
             context.request.getBody().then {
                 String descriptionName = pathTokens["descriptionName"]
                 render(objectMapper.writeValueAsString(transactionService.transactionsByDescription(descriptionName)))
+            }
+        }
+
+        get('transaction/date-range') { Context context, TransactionService transactionService, ObjectMapper objectMapper ->
+            context.request.getBody().then {
+                String startDateStr = context.request.queryParams.get("startDate")
+                String endDateStr = context.request.queryParams.get("endDate")
+                try {
+                    java.time.LocalDate startDate = java.time.LocalDate.parse(startDateStr)
+                    java.time.LocalDate endDate = java.time.LocalDate.parse(endDateStr)
+                    List<Transaction> transactions = transactionService.transactionsByDateRange(startDate, endDate)
+                    render(objectMapper.writeValueAsString(transactions))
+                } catch (RuntimeException e) {
+                    context.response.status(400)
+                    render('{"error":"' + e.message + '"}')
+                }
             }
         }
 
@@ -356,6 +381,39 @@ ratpack {
                 } else {
                     context.response.status(404)
                     render('{"error":"transaction not found"}')
+                }
+            }
+        }
+
+        put('transaction/update/account') { Context context, TransactionService transactionService, ObjectMapper objectMapper ->
+            context.request.body.then {
+                try {
+                    Map<String, Object> body = objectMapper.readValue(it.text, Map)
+                    String guid = (String) body.get("guid")
+                    String accountNameOwner = (String) body.get("accountNameOwner")
+                    Transaction result = transactionService.changeAccountNameOwner(guid, accountNameOwner)
+                    render(objectMapper.writeValueAsString(result))
+                } catch (RuntimeException e) {
+                    context.response.status(400)
+                    render('{"error":"' + e.message + '"}')
+                }
+            }
+        }
+
+        get('transaction/account/bonus-progress/:accountNameOwner') { Context context, TransactionService transactionService, ObjectMapper objectMapper ->
+            context.request.getBody().then {
+                String accountNameOwner = pathTokens["accountNameOwner"]
+                try {
+                    String startDateStr = context.request.queryParams.get("startDate")
+                    BigDecimal targetAmount = new BigDecimal(context.request.queryParams.get("targetAmount"))
+                    BigDecimal bonusAmount = new BigDecimal(context.request.queryParams.get("bonusAmount"))
+                    long windowDays = Long.parseLong(context.request.queryParams.get("windowDays") ?: "90")
+                    java.time.LocalDate startDate = java.time.LocalDate.parse(startDateStr)
+                    BonusProgress bonusProgress = transactionService.calculateBonusProgress(accountNameOwner, startDate, targetAmount, bonusAmount, windowDays)
+                    render(objectMapper.writeValueAsString(bonusProgress))
+                } catch (RuntimeException e) {
+                    context.response.status(400)
+                    render('{"error":"' + e.message + '"}')
                 }
             }
         }
@@ -946,6 +1004,47 @@ ratpack {
             }
         }
 
+        get('family-member/owner/:owner') { Context context, FamilyMemberService familyMemberService, ObjectMapper objectMapper ->
+            context.request.getBody().then {
+                String owner = pathTokens["owner"]
+                render(objectMapper.writeValueAsString(familyMemberService.familyMembersByOwner(owner)))
+            }
+        }
+
+        get('family-member/owner/:owner/relationship/:relationship') { Context context, FamilyMemberService familyMemberService, ObjectMapper objectMapper ->
+            context.request.getBody().then {
+                String owner = pathTokens["owner"]
+                String relationship = pathTokens["relationship"]
+                render(objectMapper.writeValueAsString(familyMemberService.familyMembersByOwnerAndRelationship(owner, relationship)))
+            }
+        }
+
+        put('family-member/:familyMemberId/activate') { Context context, FamilyMemberService familyMemberService, ObjectMapper objectMapper ->
+            context.request.getBody().then {
+                Long familyMemberId = Long.parseLong(pathTokens["familyMemberId"])
+                try {
+                    FamilyMember result = familyMemberService.familyMemberActivate(familyMemberId)
+                    render(objectMapper.writeValueAsString(result))
+                } catch (RuntimeException e) {
+                    context.response.status(404)
+                    render('{"error":"' + e.message + '"}')
+                }
+            }
+        }
+
+        put('family-member/:familyMemberId/deactivate') { Context context, FamilyMemberService familyMemberService, ObjectMapper objectMapper ->
+            context.request.getBody().then {
+                Long familyMemberId = Long.parseLong(pathTokens["familyMemberId"])
+                try {
+                    FamilyMember result = familyMemberService.familyMemberDeactivate(familyMemberId)
+                    render(objectMapper.writeValueAsString(result))
+                } catch (RuntimeException e) {
+                    context.response.status(404)
+                    render('{"error":"' + e.message + '"}')
+                }
+            }
+        }
+
         // ===== MEDICAL PROVIDER =====
 
         get('medical-provider/active') { Context context, MedicalProviderService medicalProviderService, ObjectMapper objectMapper ->
@@ -1080,6 +1179,288 @@ ratpack {
             }
         }
 
+        // ===== MEDICAL EXPENSES (plural paths mirroring endpoint project) =====
+
+        get('medical-expenses/active') { Context context, MedicalExpenseService medicalExpenseService, ObjectMapper objectMapper ->
+            context.request.getBody().then {
+                render(objectMapper.writeValueAsString(medicalExpenseService.medicalExpenses()))
+            }
+        }
+
+        get('medical-expenses/all') { Context context, MedicalExpenseService medicalExpenseService, ObjectMapper objectMapper ->
+            context.request.getBody().then {
+                render(objectMapper.writeValueAsString(medicalExpenseService.medicalExpenses()))
+            }
+        }
+
+        get('medical-expenses/out-of-network') { Context context, MedicalExpenseService medicalExpenseService, ObjectMapper objectMapper ->
+            context.request.getBody().then {
+                render(objectMapper.writeValueAsString(medicalExpenseService.outOfNetworkExpenses()))
+            }
+        }
+
+        get('medical-expenses/outstanding-balances') { Context context, MedicalExpenseService medicalExpenseService, ObjectMapper objectMapper ->
+            context.request.getBody().then {
+                render(objectMapper.writeValueAsString(medicalExpenseService.outstandingPatientBalances()))
+            }
+        }
+
+        get('medical-expenses/open-claims') { Context context, MedicalExpenseService medicalExpenseService, ObjectMapper objectMapper ->
+            context.request.getBody().then {
+                render(objectMapper.writeValueAsString(medicalExpenseService.openClaims()))
+            }
+        }
+
+        get('medical-expenses/date-range') { Context context, MedicalExpenseService medicalExpenseService, ObjectMapper objectMapper ->
+            context.request.getBody().then {
+                try {
+                    java.time.LocalDate startDate = java.time.LocalDate.parse(context.request.queryParams.get("startDate"))
+                    java.time.LocalDate endDate = java.time.LocalDate.parse(context.request.queryParams.get("endDate"))
+                    render(objectMapper.writeValueAsString(medicalExpenseService.medicalExpensesByDateRange(startDate, endDate)))
+                } catch (RuntimeException e) {
+                    context.response.status(400)
+                    render('{"error":"' + e.message + '"}')
+                }
+            }
+        }
+
+        get('medical-expenses/unpaid') { Context context, MedicalExpenseService medicalExpenseService, ObjectMapper objectMapper ->
+            context.request.getBody().then {
+                render(objectMapper.writeValueAsString(medicalExpenseService.unpaidMedicalExpenses()))
+            }
+        }
+
+        get('medical-expenses/partially-paid') { Context context, MedicalExpenseService medicalExpenseService, ObjectMapper objectMapper ->
+            context.request.getBody().then {
+                render(objectMapper.writeValueAsString(medicalExpenseService.partiallyPaidMedicalExpenses()))
+            }
+        }
+
+        get('medical-expenses/fully-paid') { Context context, MedicalExpenseService medicalExpenseService, ObjectMapper objectMapper ->
+            context.request.getBody().then {
+                render(objectMapper.writeValueAsString(medicalExpenseService.fullyPaidMedicalExpenses()))
+            }
+        }
+
+        get('medical-expenses/without-transaction') { Context context, MedicalExpenseService medicalExpenseService, ObjectMapper objectMapper ->
+            context.request.getBody().then {
+                render(objectMapper.writeValueAsString(medicalExpenseService.medicalExpensesWithoutTransaction()))
+            }
+        }
+
+        get('medical-expenses/overpaid') { Context context, MedicalExpenseService medicalExpenseService, ObjectMapper objectMapper ->
+            context.request.getBody().then {
+                render(objectMapper.writeValueAsString(medicalExpenseService.overpaidMedicalExpenses()))
+            }
+        }
+
+        get('medical-expenses/claim-status-counts') { Context context, MedicalExpenseService medicalExpenseService, ObjectMapper objectMapper ->
+            context.request.getBody().then {
+                render(objectMapper.writeValueAsString(medicalExpenseService.claimStatusCounts()))
+            }
+        }
+
+        get('medical-expenses/totals/unpaid-balance') { Context context, MedicalExpenseService medicalExpenseService, ObjectMapper objectMapper ->
+            context.request.getBody().then {
+                render(objectMapper.writeValueAsString([unpaidBalance: medicalExpenseService.totalUnpaidBalance()]))
+            }
+        }
+
+        // 2-segment parameterised catch-all — must follow all fixed 2-segment routes above
+        get('medical-expenses/:medicalExpenseId') { Context context, MedicalExpenseService medicalExpenseService, ObjectMapper objectMapper ->
+            context.request.getBody().then {
+                Long medicalExpenseId = Long.parseLong(pathTokens["medicalExpenseId"])
+                MedicalExpense medicalExpense = medicalExpenseService.medicalExpense(medicalExpenseId)
+                if (medicalExpense) {
+                    render(objectMapper.writeValueAsString(medicalExpense))
+                } else {
+                    context.response.status(404)
+                    render('{"error":"medical expense not found"}')
+                }
+            }
+        }
+
+        get('medical-expenses/transaction/:transactionId') { Context context, MedicalExpenseService medicalExpenseService, ObjectMapper objectMapper ->
+            context.request.getBody().then {
+                Long transactionId = Long.parseLong(pathTokens["transactionId"])
+                MedicalExpense result = medicalExpenseService.medicalExpenseByTransactionId(transactionId)
+                if (result) {
+                    render(objectMapper.writeValueAsString(result))
+                } else {
+                    context.response.status(404)
+                    render('{"error":"medical expense not found for transaction"}')
+                }
+            }
+        }
+
+        get('medical-expenses/account/:accountId') { Context context, MedicalExpenseService medicalExpenseService, ObjectMapper objectMapper ->
+            context.request.getBody().then {
+                Long accountId = Long.parseLong(pathTokens["accountId"])
+                render(objectMapper.writeValueAsString(medicalExpenseService.medicalExpensesByAccountId(accountId)))
+            }
+        }
+
+        get('medical-expenses/provider/:providerId') { Context context, MedicalExpenseService medicalExpenseService, ObjectMapper objectMapper ->
+            context.request.getBody().then {
+                Long providerId = Long.parseLong(pathTokens["providerId"])
+                render(objectMapper.writeValueAsString(medicalExpenseService.medicalExpensesByProviderId(providerId)))
+            }
+        }
+
+        get('medical-expenses/family-member/:familyMemberId') { Context context, MedicalExpenseService medicalExpenseService, ObjectMapper objectMapper ->
+            context.request.getBody().then {
+                Long familyMemberId = Long.parseLong(pathTokens["familyMemberId"])
+                render(objectMapper.writeValueAsString(medicalExpenseService.medicalExpensesByFamilyMemberId(familyMemberId)))
+            }
+        }
+
+        get('medical-expenses/claim-status/:claimStatus') { Context context, MedicalExpenseService medicalExpenseService, ObjectMapper objectMapper ->
+            context.request.getBody().then {
+                String claimStatus = pathTokens["claimStatus"]
+                render(objectMapper.writeValueAsString(medicalExpenseService.medicalExpensesByClaimStatus(claimStatus)))
+            }
+        }
+
+        get('medical-expenses/procedure-code/:procedureCode') { Context context, MedicalExpenseService medicalExpenseService, ObjectMapper objectMapper ->
+            context.request.getBody().then {
+                String procedureCode = pathTokens["procedureCode"]
+                render(objectMapper.writeValueAsString(medicalExpenseService.medicalExpensesByProcedureCode(procedureCode)))
+            }
+        }
+
+        get('medical-expenses/diagnosis-code/:diagnosisCode') { Context context, MedicalExpenseService medicalExpenseService, ObjectMapper objectMapper ->
+            context.request.getBody().then {
+                String diagnosisCode = pathTokens["diagnosisCode"]
+                render(objectMapper.writeValueAsString(medicalExpenseService.medicalExpensesByDiagnosisCode(diagnosisCode)))
+            }
+        }
+
+        get('medical-expenses/account/:accountId/date-range') { Context context, MedicalExpenseService medicalExpenseService, ObjectMapper objectMapper ->
+            context.request.getBody().then {
+                Long accountId = Long.parseLong(pathTokens["accountId"])
+                try {
+                    java.time.LocalDate startDate = java.time.LocalDate.parse(context.request.queryParams.get("startDate"))
+                    java.time.LocalDate endDate = java.time.LocalDate.parse(context.request.queryParams.get("endDate"))
+                    render(objectMapper.writeValueAsString(medicalExpenseService.medicalExpensesByAccountIdAndDateRange(accountId, startDate, endDate)))
+                } catch (RuntimeException e) {
+                    context.response.status(400)
+                    render('{"error":"' + e.message + '"}')
+                }
+            }
+        }
+
+        get('medical-expenses/family-member/:familyMemberId/date-range') { Context context, MedicalExpenseService medicalExpenseService, ObjectMapper objectMapper ->
+            context.request.getBody().then {
+                Long familyMemberId = Long.parseLong(pathTokens["familyMemberId"])
+                try {
+                    java.time.LocalDate startDate = java.time.LocalDate.parse(context.request.queryParams.get("startDate"))
+                    java.time.LocalDate endDate = java.time.LocalDate.parse(context.request.queryParams.get("endDate"))
+                    render(objectMapper.writeValueAsString(medicalExpenseService.medicalExpensesByFamilyMemberIdAndDateRange(familyMemberId, startDate, endDate)))
+                } catch (RuntimeException e) {
+                    context.response.status(400)
+                    render('{"error":"' + e.message + '"}')
+                }
+            }
+        }
+
+        get('medical-expenses/totals/year/:year') { Context context, MedicalExpenseService medicalExpenseService, ObjectMapper objectMapper ->
+            context.request.getBody().then {
+                int year = Integer.parseInt(pathTokens["year"])
+                render(objectMapper.writeValueAsString(medicalExpenseService.medicalExpenseTotalsByYear(year)))
+            }
+        }
+
+        get('medical-expenses/totals/year/:year/paid') { Context context, MedicalExpenseService medicalExpenseService, ObjectMapper objectMapper ->
+            context.request.getBody().then {
+                int year = Integer.parseInt(pathTokens["year"])
+                render(objectMapper.writeValueAsString([totalPaid: medicalExpenseService.totalPaidByYear(year)]))
+            }
+        }
+
+        post('medical-expenses') { Context context, MedicalExpenseService medicalExpenseService, ObjectMapper objectMapper ->
+            context.request.body.then {
+                try {
+                    MedicalExpense medicalExpense = objectMapper.readValue(it.text, MedicalExpense)
+                    MedicalExpense result = medicalExpenseService.medicalExpenseInsert(medicalExpense)
+                    context.response.status(201)
+                    render(objectMapper.writeValueAsString(result))
+                } catch (RuntimeException e) {
+                    context.response.status(400)
+                    render('{"error":"' + e.message + '"}')
+                }
+            }
+        }
+
+        put('medical-expenses/:medicalExpenseId/claim-status') { Context context, MedicalExpenseService medicalExpenseService, ObjectMapper objectMapper ->
+            context.request.body.then {
+                Long medicalExpenseId = Long.parseLong(pathTokens["medicalExpenseId"])
+                try {
+                    Map<String, Object> body = objectMapper.readValue(it.text, Map)
+                    String claimStatus = (String) body.get("claimStatus")
+                    MedicalExpense result = medicalExpenseService.medicalExpenseUpdateClaimStatus(medicalExpenseId, claimStatus)
+                    render(objectMapper.writeValueAsString(result))
+                } catch (RuntimeException e) {
+                    context.response.status(400)
+                    render('{"error":"' + e.message + '"}')
+                }
+            }
+        }
+
+        put('medical-expenses/:medicalExpenseId') { Context context, MedicalExpenseService medicalExpenseService, ObjectMapper objectMapper ->
+            context.request.body.then {
+                Long medicalExpenseId = Long.parseLong(pathTokens["medicalExpenseId"])
+                try {
+                    MedicalExpense medicalExpense = objectMapper.readValue(it.text, MedicalExpense)
+                    medicalExpense.medicalExpenseId = medicalExpenseId
+                    MedicalExpense result = medicalExpenseService.medicalExpenseUpdate(medicalExpense)
+                    render(objectMapper.writeValueAsString(result))
+                } catch (RuntimeException e) {
+                    context.response.status(404)
+                    render('{"error":"' + e.message + '"}')
+                }
+            }
+        }
+
+        post('medical-expenses/:medicalExpenseId/payments/:transactionId') { Context context, MedicalExpenseService medicalExpenseService, ObjectMapper objectMapper ->
+            context.request.getBody().then {
+                Long medicalExpenseId = Long.parseLong(pathTokens["medicalExpenseId"])
+                Long transactionId = Long.parseLong(pathTokens["transactionId"])
+                try {
+                    MedicalExpense result = medicalExpenseService.medicalExpenseLinkTransaction(medicalExpenseId, transactionId)
+                    render(objectMapper.writeValueAsString(result))
+                } catch (RuntimeException e) {
+                    context.response.status(400)
+                    render('{"error":"' + e.message + '"}')
+                }
+            }
+        }
+
+        delete('medical-expenses/:medicalExpenseId/payments') { Context context, MedicalExpenseService medicalExpenseService, ObjectMapper objectMapper ->
+            context.request.getBody().then {
+                Long medicalExpenseId = Long.parseLong(pathTokens["medicalExpenseId"])
+                try {
+                    MedicalExpense result = medicalExpenseService.medicalExpenseUnlinkTransaction(medicalExpenseId)
+                    render(objectMapper.writeValueAsString(result))
+                } catch (RuntimeException e) {
+                    context.response.status(400)
+                    render('{"error":"' + e.message + '"}')
+                }
+            }
+        }
+
+        delete('medical-expenses/:medicalExpenseId') { Context context, MedicalExpenseService medicalExpenseService ->
+            context.request.getBody().then {
+                Long medicalExpenseId = Long.parseLong(pathTokens["medicalExpenseId"])
+                boolean deleted = medicalExpenseService.medicalExpenseDelete(medicalExpenseId)
+                if (deleted) {
+                    render('{}')
+                } else {
+                    context.response.status(404)
+                    render('{"error":"medical expense not found"}')
+                }
+            }
+        }
+
         // ===== UUID =====
 
         post('uuid/generate') { Context context, ObjectMapper objectMapper ->
@@ -1107,6 +1488,16 @@ ratpack {
                     count    : uuids.size(),
                     timestamp: System.currentTimeMillis(),
                     source   : "server"
+                ]))
+            }
+        }
+
+        post('uuid/health') { Context context, ObjectMapper objectMapper ->
+            context.request.getBody().then {
+                render(objectMapper.writeValueAsString([
+                    status   : "healthy",
+                    service  : "uuid-generation",
+                    timestamp: System.currentTimeMillis()
                 ]))
             }
         }

@@ -58,4 +58,36 @@ class FamilyMemberRepository {
                 .execute()
         return true
     }
+
+    List<FamilyMember> familyMembersByOwner(String owner) {
+        return dslContext.selectFrom(T_FAMILY_MEMBER)
+                .where(T_FAMILY_MEMBER.OWNER.eq(owner).and(T_FAMILY_MEMBER.ACTIVE_STATUS.eq(true)))
+                .orderBy(T_FAMILY_MEMBER.MEMBER_NAME)
+                .fetchInto(FamilyMember)
+    }
+
+    List<FamilyMember> familyMembersByOwnerAndRelationship(String owner, String relationship) {
+        return dslContext.selectFrom(T_FAMILY_MEMBER)
+                .where(T_FAMILY_MEMBER.OWNER.eq(owner)
+                        .and(T_FAMILY_MEMBER.RELATIONSHIP.eq(relationship))
+                        .and(T_FAMILY_MEMBER.ACTIVE_STATUS.eq(true)))
+                .orderBy(T_FAMILY_MEMBER.MEMBER_NAME)
+                .fetchInto(FamilyMember)
+    }
+
+    boolean familyMemberActivate(Long familyMemberId) {
+        dslContext.update(T_FAMILY_MEMBER)
+                .set(T_FAMILY_MEMBER.ACTIVE_STATUS, true)
+                .where(T_FAMILY_MEMBER.FAMILY_MEMBER_ID.eq(familyMemberId))
+                .execute()
+        return true
+    }
+
+    boolean familyMemberDeactivate(Long familyMemberId) {
+        dslContext.update(T_FAMILY_MEMBER)
+                .set(T_FAMILY_MEMBER.ACTIVE_STATUS, false)
+                .where(T_FAMILY_MEMBER.FAMILY_MEMBER_ID.eq(familyMemberId))
+                .execute()
+        return true
+    }
 }

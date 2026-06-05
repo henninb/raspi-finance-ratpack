@@ -8,6 +8,7 @@ import org.jooq.SQLDialect
 import org.jooq.impl.DSL
 
 import javax.sql.DataSource
+import java.time.LocalDate
 
 import static org.jooq.generated.Tables.T_TRANSACTION
 
@@ -81,5 +82,42 @@ class TransactionRepository {
                 .where(T_TRANSACTION.GUID.equal(guid))
                 .execute()
         return true
+    }
+
+    List<Transaction> transactionsByDateRange(LocalDate startDate, LocalDate endDate) {
+        return dslContext.selectFrom(T_TRANSACTION)
+                .where(T_TRANSACTION.TRANSACTION_DATE.between(startDate, endDate)
+                        .and(T_TRANSACTION.ACTIVE_STATUS.eq(true)))
+                .orderBy(T_TRANSACTION.TRANSACTION_DATE.desc())
+                .fetchInto(Transaction)
+    }
+
+    boolean changeAccountNameOwner(String guid, String accountNameOwner, long accountId) {
+        dslContext.update(T_TRANSACTION)
+                .set(T_TRANSACTION.ACCOUNT_NAME_OWNER, accountNameOwner)
+                .set(T_TRANSACTION.ACCOUNT_ID, accountId)
+                .where(T_TRANSACTION.GUID.eq(guid))
+                .execute()
+        return true
+    }
+
+    BigDecimal sumSpendingInWindow(String accountNameOwner, LocalDate startDate, LocalDate endDate, String transactionState) {
+        return dslContext.select(DSL.coalesce(DSL.sum(T_TRANSACTION.AMOUNT), BigDecimal.ZERO))
+                .from(T_TRANSACTION)
+                .where(T_TRANSACTION.ACCOUNT_NAME_OWNER.eq(accountNameOwner)
+                        .and(T_TRANSACTION.TRANSACTION_DATE.between(startDate, endDate))
+                        .and(T_TRANSACTION.TRANSACTION_STATE.eq(transactionState))
+                        .and(T_TRANSACTION.ACTIVE_STATUS.eq(true)))
+                .fetchOneInto(BigDecimal) ?: BigDecimal.ZERO
+    }
+
+    BigDecimal sumPendingSpendingInWindow(String accountNameOwner, LocalDate startDate, LocalDate endDate, List<String> transactionStates) {
+        return dslContext.select(DSL.coalesce(DSL.sum(T_TRANSACTION.AMOUNT), BigDecimal.ZERO))
+                .from(T_TRANSACTION)
+                .where(T_TRANSACTION.ACCOUNT_NAME_OWNER.eq(accountNameOwner)
+                        .and(T_TRANSACTION.TRANSACTION_DATE.between(startDate, endDate))
+                        .and(T_TRANSACTION.TRANSACTION_STATE.in(transactionStates))
+                        .and(T_TRANSACTION.ACTIVE_STATUS.eq(true)))
+                .fetchOneInto(BigDecimal) ?: BigDecimal.ZERO
     }
 }

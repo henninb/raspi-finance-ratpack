@@ -10,6 +10,7 @@ import org.jooq.impl.DSL
 import javax.sql.DataSource
 
 import static org.jooq.generated.Tables.T_ACCOUNT
+import static org.jooq.generated.Tables.T_TRANSACTION
 
 @Log
 class AccountRepository {
@@ -84,5 +85,36 @@ class AccountRepository {
                 .where(T_ACCOUNT.ACCOUNT_NAME_OWNER.equal(accountNameOwner))
                 .execute()
         return true
+    }
+
+    void updateValidationDates() {
+        dslContext.execute("""
+            UPDATE t_account a
+            SET validation_date = sub.max_validation_date,
+                date_updated = now()
+            FROM (
+                SELECT va.account_id, MAX(va.validation_date) AS max_validation_date
+                FROM t_validation_amount va
+                WHERE va.active_status = TRUE
+                GROUP BY va.account_id
+            ) sub
+            WHERE a.account_id = sub.account_id
+        """)
+    }
+
+    BigDecimal sumTransactionsByState(String transactionState) {
+        BigDecimal debits = dslContext.select(DSL.coalesce(DSL.sum(T_TRANSACTION.AMOUNT), BigDecimal.ZERO))
+                .from(T_TRANSACTION)
+                .where(T_TRANSACTION.ACCOUNT_TYPE.eq("debit")
+                        .and(T_TRANSACTION.TRANSACTION_STATE.eq(transactionState))
+                        .and(T_TRANSACTION.ACTIVE_STATUS.eq(true)))
+                .fetchOneInto(BigDecimal)
+        BigDecimal credits = dslContext.select(DSL.coalesce(DSL.sum(T_TRANSACTION.AMOUNT), BigDecimal.ZERO))
+                .from(T_TRANSACTION)
+                .where(T_TRANSACTION.ACCOUNT_TYPE.eq("credit")
+                        .and(T_TRANSACTION.TRANSACTION_STATE.eq(transactionState))
+                        .and(T_TRANSACTION.ACTIVE_STATUS.eq(true)))
+                .fetchOneInto(BigDecimal)
+        return (debits ?: BigDecimal.ZERO) - (credits ?: BigDecimal.ZERO)
     }
 }
