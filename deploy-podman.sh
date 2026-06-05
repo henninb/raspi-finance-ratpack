@@ -7,6 +7,7 @@ REMOTE_HOST="debian-dockerserver"
 REMOTE_USER="henninb"
 REMOTE_DIR="/home/${REMOTE_USER}/raspi-finance-ratpack"
 HOST_IP="192.168.10.10"
+ENV_FILE="env.prod"
 APP="raspi-finance-ratpack"
 CONTAINER_NAME="raspi-finance-endpoint"
 
@@ -104,7 +105,25 @@ setup_ssh() {
   log "Remote user: ${USERNAME} (UID=${CURRENT_UID}, GID=${CURRENT_GID})"
 }
 
+create_remote_secrets() {
+  log "Creating Podman secrets on ${REMOTE_HOST}..."
+  printf '%s' "$DATASOURCE_PASSWORD" | ssh "${REMOTE_USER}@${REMOTE_HOST}" "podman secret create --replace DATASOURCE_PASSWORD -"
+  printf '%s' "$JWT_KEY"             | ssh "${REMOTE_USER}@${REMOTE_HOST}" "podman secret create --replace JWT_KEY -"
+  log "All Podman secrets created on ${REMOTE_HOST}"
+}
+
 log "=== Podman Deployment to ${REMOTE_HOST} (${APP}) ==="
+
+# --- Load secrets from gopass ---
+if ! command -v gopass >/dev/null 2>&1; then
+  log_error "gopass is not installed."
+  exit 1
+fi
+log "Loading secrets from gopass..."
+DATASOURCE_PASSWORD=$(gopass show -o raspi-finance-endpoint/postgresql) || { log_error "Failed to retrieve secret 'raspi-finance-endpoint/postgresql'"; exit 1; }
+JWT_KEY=$(gopass show -o raspi-finance-endpoint/jwt-key)               || { log_error "Failed to retrieve secret 'raspi-finance-endpoint/jwt-key'"; exit 1; }
+export DATASOURCE_PASSWORD JWT_KEY
+log "Secrets loaded from gopass"
 
 # --- Step 0: SSL validation ---
 log "Step 0: SSL Certificate Validation"
@@ -148,6 +167,9 @@ ssh "${REMOTE_USER}@${REMOTE_HOST}" "mkdir -p ${REMOTE_DIR}/build/libs"
 rsync -av "build/libs/${APP}.jar" "${REMOTE_USER}@${REMOTE_HOST}:${REMOTE_DIR}/build/libs/"
 log "Files synced to ${REMOTE_DIR}"
 
+# --- Step 3.5: Create Podman secrets on remote ---
+create_remote_secrets
+
 # --- Step 4: Remote deployment ---
 log "Step 4: Building and deploying container on ${REMOTE_HOST}..."
 ssh -T "${REMOTE_USER}@${REMOTE_HOST}" \
@@ -156,6 +178,7 @@ ssh -T "${REMOTE_USER}@${REMOTE_HOST}" \
   CURRENT_GID="${CURRENT_GID}" \
   USERNAME="${USERNAME}" \
   HOST_IP="${HOST_IP}" \
+  ENV_FILE="${ENV_FILE}" \
   APP="${APP}" \
   CONTAINER_NAME="${CONTAINER_NAME}" \
   'bash -s' << 'ENDSSH'
@@ -213,8 +236,10 @@ Image=localhost/${APP}
 ContainerName=${CONTAINER_NAME}
 HostName=hornsup-endpoint
 PublishPort=192.168.10.10:8443:8443
-Volume=${REMOTE_DIR}/ssl:/opt/${APP}/ssl:ro
 Network=finance-lan
+Secret=DATASOURCE_PASSWORD,type=env
+Secret=JWT_KEY,type=env
+EnvironmentFile=${REMOTE_DIR}/${ENV_FILE}
 AddHost=postgresql.bhenning.com:${HOST_IP}
 NoNewPrivileges=true
 DropCapability=ALL
@@ -239,14 +264,17 @@ export DBUS_SESSION_BUS_ADDRESS=${DBUS_SESSION_BUS_ADDRESS:-unix:path=/run/user/
 systemctl --user daemon-reload 2>/dev/null || true
 echo "Systemd user daemon reloaded"
 
+mkdir -p "${REMOTE_DIR}/json_in"
 echo "Starting ${CONTAINER_NAME}..."
 podman run -d \
   --replace \
   --name "${CONTAINER_NAME}" \
   --hostname hornsup-endpoint \
   -p 192.168.10.10:8443:8443 \
-  -v "${REMOTE_DIR}/ssl:/opt/${APP}/ssl:ro" \
   --network finance-lan \
+  --secret DATASOURCE_PASSWORD,type=env \
+  --secret JWT_KEY,type=env \
+  --env-file "${REMOTE_DIR}/${ENV_FILE}" \
   --add-host "postgresql.bhenning.com:${HOST_IP}" \
   --pull never \
   --security-opt no-new-privileges:true \

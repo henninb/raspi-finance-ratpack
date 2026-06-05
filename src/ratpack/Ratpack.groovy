@@ -1,7 +1,10 @@
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.zaxxer.hikari.HikariConfig
 import finance.domain.Account
+import finance.domain.AuthenticatedUser
 import finance.domain.BonusProgress
+import finance.domain.LoginRequest
+import finance.domain.User
 import io.netty.handler.ssl.SslContextBuilder
 import org.yaml.snakeyaml.Yaml
 import finance.domain.Category
@@ -21,16 +24,21 @@ import finance.services.AccountService
 import finance.services.CategoryService
 import finance.services.DescriptionService
 import finance.services.FamilyMemberService
+import finance.services.JwtTokenService
+import finance.services.LoginAttemptService
 import finance.services.MedicalExpenseService
 import finance.services.MedicalProviderService
 import finance.services.ParameterService
 import finance.services.PaymentService
 import finance.services.PendingTransactionService
 import finance.services.SummaryService
+import finance.services.TokenBlacklistService
 import finance.services.TransactionService
 import finance.services.TransferService
+import finance.services.UserService
 import finance.services.ValidationAmountService
 import ratpack.core.handling.Context
+import ratpack.exec.registry.Registry
 import ratpack.hikari.HikariModule
 import ratpack.core.server.ServerConfigBuilder
 
@@ -71,11 +79,160 @@ ratpack {
         bind(FamilyMemberService)
         bind(MedicalProviderService)
         bind(MedicalExpenseService)
+        bind(JwtTokenService)
+        bind(LoginAttemptService)
+        bind(TokenBlacklistService)
+        bind(UserService)
         bind(ObjectMapper)
     }
 
     handlers {
         all(new CorsHandler())
+
+        // ===== JWT AUTHENTICATION MIDDLEWARE =====
+        // Skips OPTIONS (CORS preflight) and public auth endpoints; validates all other requests.
+
+        all { Context context, JwtTokenService jwtTokenService, TokenBlacklistService tokenBlacklistService ->
+            String path = context.request.path
+            Set<String> publicPaths = ['login', 'register', 'logout'] as Set<String>
+            if (path in publicPaths || context.request.method.name == "OPTIONS") {
+                context.next()
+                return
+            }
+
+            String cookieHeader = context.request.headers.get("Cookie")
+            String authHeader = context.request.headers.get("Authorization")
+            String token = jwtTokenService.extractToken(cookieHeader, authHeader)
+
+            if (!token) {
+                context.response.status(401)
+                render('{"error":"Authentication required"}')
+                return
+            }
+
+            if (tokenBlacklistService.isBlacklisted(token)) {
+                context.response.status(401)
+                render('{"error":"Token has been revoked"}')
+                return
+            }
+
+            try {
+                def claims = jwtTokenService.parseClaims(token)
+                String username = (String) claims.get(JwtTokenService.CLAIM_USERNAME)
+                if (!username) {
+                    context.response.status(401)
+                    render('{"error":"Invalid token: missing username claim"}')
+                    return
+                }
+                boolean keepLoggedIn = claims.get(JwtTokenService.CLAIM_KEEP_LOGGED_IN) as boolean ?: false
+                context.next(Registry.single(new AuthenticatedUser(username, keepLoggedIn)))
+            } catch (Exception e) {
+                context.response.status(401)
+                render('{"error":"Invalid or expired token"}')
+            }
+        }
+
+        // ===== AUTH =====
+
+        post('login') { Context context, JwtTokenService jwtTokenService, LoginAttemptService loginAttemptService, UserService userService, ObjectMapper objectMapper ->
+            context.request.body.then {
+                LoginRequest loginRequest = objectMapper.readValue(it.text, LoginRequest)
+                String username = loginRequest.username?.trim() ?: ""
+
+                if (loginAttemptService.isLocked(username)) {
+                    long remaining = loginAttemptService.remainingLockSeconds(username)
+                    context.response.status(429)
+                    render(objectMapper.writeValueAsString([error: "Account temporarily locked. Try again in ${remaining} seconds."]))
+                    return
+                }
+
+                if (!username || !loginRequest.password) {
+                    context.response.status(400)
+                    render('{"error":"Username and password are required"}')
+                    return
+                }
+
+                Optional<User> userOpt = userService.signIn(username, loginRequest.password)
+                if (userOpt.isEmpty()) {
+                    loginAttemptService.recordFailure(username)
+                    context.response.status(401)
+                    render('{"error":"Invalid credentials"}')
+                    return
+                }
+
+                loginAttemptService.recordSuccess(username)
+                boolean keepLoggedIn = loginRequest.keepLoggedIn ?: false
+                String token = jwtTokenService.buildToken(username, keepLoggedIn)
+                context.response.headers.set("Set-Cookie", jwtTokenService.buildSetCookieHeader(token, keepLoggedIn))
+                render(objectMapper.writeValueAsString([message: "Login successful"]))
+            }
+        }
+
+        post('logout') { Context context, JwtTokenService jwtTokenService, TokenBlacklistService tokenBlacklistService ->
+            context.request.getBody().then {
+                String cookieHeader = context.request.headers.get("Cookie")
+                String authHeader = context.request.headers.get("Authorization")
+                String token = jwtTokenService.extractToken(cookieHeader, authHeader)
+
+                if (token) {
+                    try {
+                        def claims = jwtTokenService.parseClaims(token)
+                        long expiry = claims.expiration?.time ?: 0L
+                        tokenBlacklistService.blacklistToken(token, expiry)
+                    } catch (Exception ignored) {
+                        // Token may already be expired; still clear the cookie
+                    }
+                }
+
+                context.response.status(204)
+                context.response.headers.set("Set-Cookie", jwtTokenService.buildClearCookieHeader())
+                render('')
+            }
+        }
+
+        post('register') { Context context, JwtTokenService jwtTokenService, UserService userService, ObjectMapper objectMapper ->
+            context.request.body.then {
+                try {
+                    User newUser = objectMapper.readValue(it.text, User)
+                    if (!newUser.username?.trim() || !newUser.password) {
+                        context.response.status(400)
+                        render('{"error":"Username and password are required"}')
+                        return
+                    }
+                    userService.signUp(newUser)
+                    String token = jwtTokenService.buildToken(newUser.username, false)
+                    context.response.status(201)
+                    context.response.headers.set("Set-Cookie", jwtTokenService.buildSetCookieHeader(token, false))
+                    render(objectMapper.writeValueAsString([message: "Registration successful"]))
+                } catch (IllegalArgumentException e) {
+                    context.response.status(409)
+                    render(objectMapper.writeValueAsString([error: e.message]))
+                } catch (RuntimeException e) {
+                    context.response.status(400)
+                    render(objectMapper.writeValueAsString([error: e.message]))
+                }
+            }
+        }
+
+        post('refresh') { Context context, AuthenticatedUser principal, JwtTokenService jwtTokenService ->
+            context.request.getBody().then {
+                String token = jwtTokenService.buildToken(principal.username, principal.keepLoggedIn)
+                context.response.headers.set("Set-Cookie", jwtTokenService.buildSetCookieHeader(token, principal.keepLoggedIn))
+                render('{"message":"Token refreshed"}')
+            }
+        }
+
+        get('me') { Context context, AuthenticatedUser principal, UserService userService, ObjectMapper objectMapper ->
+            context.request.getBody().then {
+                User user = userService.findUserByUsername(principal.username)
+                if (!user) {
+                    context.response.status(404)
+                    render('{"error":"User not found"}')
+                    return
+                }
+                render(objectMapper.writeValueAsString(user))
+            }
+        }
 
         // ===== ACCOUNT =====
 
