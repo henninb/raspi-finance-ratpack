@@ -7,6 +7,7 @@ import java.sql.Timestamp
 import java.text.SimpleDateFormat
 
 class Transaction {
+    Long transactionId
     String guid
     Long accountId
     AccountType accountType

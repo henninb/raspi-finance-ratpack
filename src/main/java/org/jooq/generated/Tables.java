@@ -161,6 +161,10 @@ public class Tables {
         public final Field<String> DESCRIPTION = createField(DSL.name("description"), SQLDataType.VARCHAR);
         public final Field<String> NOTES = createField(DSL.name("notes"), SQLDataType.VARCHAR);
         public final Field<Boolean> ACTIVE_STATUS = createField(DSL.name("active_status"), SQLDataType.BOOLEAN);
+        public final Field<String> REOCCURRING_TYPE = createField(DSL.name("reoccurring_type"), SQLDataType.VARCHAR);
+        public final Field<String> TRANSACTION_TYPE = createField(DSL.name("transaction_type"), SQLDataType.VARCHAR);
+        public final Field<java.sql.Timestamp> DATE_UPDATED = createField(DSL.name("date_updated"), SQLDataType.TIMESTAMP);
+        public final Field<java.sql.Timestamp> DATE_ADDED = createField(DSL.name("date_added"), SQLDataType.TIMESTAMP);
 
         public TTransaction() { super(DSL.name("t_transaction")); }
     }

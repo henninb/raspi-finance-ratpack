@@ -43,4 +43,5 @@ CMD java -Duser.timezone=${TIMEZONE} \
     -XX:+UseContainerSupport \
     -XX:MaxRAMPercentage=75.0 \
     -Djava.security.egd=file:/dev/./urandom \
+    -Dio.netty.native.workdir=/opt/${APP} \
     -jar /opt/${APP}/bin/${APP}.jar
