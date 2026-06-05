@@ -309,7 +309,7 @@ else
 fi
 
 log "Testing application health..."
-if ssh "${REMOTE_HOST}" 'curl -k -f -s https://localhost:8443/account/totals >/dev/null 2>&1'; then
+if ssh "${REMOTE_HOST}" 'curl -k -f -s https://localhost:8443/api/account/totals >/dev/null 2>&1'; then
   log "Application health check passed"
 else
   log "Health check failed - application may still be starting"
@@ -344,6 +344,6 @@ log "  Enable linger: ssh ${REMOTE_HOST} 'sudo loginctl enable-linger ${USERNAME
 log ""
 log "Troubleshooting:"
 log "  Re-run deployment: ./deploy-podman.sh"
-log "  App diagnostics: ssh ${REMOTE_HOST} 'curl -k -s https://localhost:8443/account/totals'"
+log "  App diagnostics: ssh ${REMOTE_HOST} 'curl -k -s https://localhost:8443/api/account/totals'"
 
 exit 0

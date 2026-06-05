@@ -36,7 +36,7 @@ USER ${USERNAME}
 
 EXPOSE 8443
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
-    CMD curl -k -f https://localhost:8443/account/totals || exit 1
+    CMD curl -k -f https://localhost:8443/api/account/totals || exit 1
 
 CMD java -Duser.timezone=${TIMEZONE} \
     -Xmx2048m \

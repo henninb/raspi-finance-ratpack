@@ -1,4 +1,6 @@
 import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.databind.SerializationFeature
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
 import com.zaxxer.hikari.HikariConfig
 import finance.domain.Account
 import finance.domain.AuthenticatedUser
@@ -83,7 +85,9 @@ ratpack {
         bind(LoginAttemptService)
         bind(TokenBlacklistService)
         bind(UserService)
-        bind(ObjectMapper)
+        bindInstance(new ObjectMapper()
+            .registerModule(new JavaTimeModule())
+            .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS))
     }
 
     handlers {
@@ -94,8 +98,9 @@ ratpack {
 
         all { Context context, JwtTokenService jwtTokenService, TokenBlacklistService tokenBlacklistService ->
             String path = context.request.path
-            Set<String> publicPaths = ['login', 'register', 'logout'] as Set<String>
-            if (path in publicPaths || context.request.method.name == "OPTIONS") {
+            String normalizedPath = path.startsWith('api/') ? path.substring(4) : path
+            Set<String> publicPaths = ['login', 'register', 'logout', 'user/register', 'csrf'] as Set<String>
+            if (normalizedPath in publicPaths || context.request.method.name == "OPTIONS") {
                 context.next()
                 return
             }
@@ -132,7 +137,18 @@ ratpack {
             }
         }
 
+        // ===== API ROUTES (all under /api/ prefix) =====
+
+        prefix('api') {
+
         // ===== AUTH =====
+
+        get('csrf') { Context context ->
+            context.request.getBody().then {
+                String token = UUID.randomUUID().toString().replace('-', '')
+                render('{"csrfToken":"' + token + '"}')
+            }
+        }
 
         post('login') { Context context, JwtTokenService jwtTokenService, LoginAttemptService loginAttemptService, UserService userService, ObjectMapper objectMapper ->
             context.request.body.then {
@@ -191,6 +207,30 @@ ratpack {
         }
 
         post('register') { Context context, JwtTokenService jwtTokenService, UserService userService, ObjectMapper objectMapper ->
+            context.request.body.then {
+                try {
+                    User newUser = objectMapper.readValue(it.text, User)
+                    if (!newUser.username?.trim() || !newUser.password) {
+                        context.response.status(400)
+                        render('{"error":"Username and password are required"}')
+                        return
+                    }
+                    userService.signUp(newUser)
+                    String token = jwtTokenService.buildToken(newUser.username, false)
+                    context.response.status(201)
+                    context.response.headers.set("Set-Cookie", jwtTokenService.buildSetCookieHeader(token, false))
+                    render(objectMapper.writeValueAsString([message: "Registration successful"]))
+                } catch (IllegalArgumentException e) {
+                    context.response.status(409)
+                    render(objectMapper.writeValueAsString([error: e.message]))
+                } catch (RuntimeException e) {
+                    context.response.status(400)
+                    render(objectMapper.writeValueAsString([error: e.message]))
+                }
+            }
+        }
+
+        post('user/register') { Context context, JwtTokenService jwtTokenService, UserService userService, ObjectMapper objectMapper ->
             context.request.body.then {
                 try {
                     User newUser = objectMapper.readValue(it.text, User)
@@ -397,6 +437,30 @@ ratpack {
             context.request.getBody().then {
                 String accountNameOwner = pathTokens["accountNameOwner"]
                 render(objectMapper.writeValueAsString(transactionService.transactions(accountNameOwner)))
+            }
+        }
+
+        get('transaction/account/select/:accountNameOwner/paged') { Context context, TransactionService transactionService, ObjectMapper objectMapper ->
+            context.request.getBody().then {
+                String accountNameOwner = pathTokens["accountNameOwner"]
+                int page = (context.request.queryParams.get("page") ?: "0").toInteger()
+                int size = (context.request.queryParams.get("size") ?: "50").toInteger()
+                List<Transaction> all = transactionService.transactions(accountNameOwner)
+                int total = all.size()
+                int fromIndex = Math.min(page * size, total)
+                int toIndex = Math.min(fromIndex + size, total)
+                List<Transaction> content = all.subList(fromIndex, toIndex)
+                int totalPages = size > 0 ? (int) Math.ceil((double) total / size) : 0
+                render(objectMapper.writeValueAsString([
+                    content      : content,
+                    totalElements: total,
+                    totalPages   : totalPages,
+                    pageNumber   : page,
+                    pageSize     : size,
+                    first        : page == 0,
+                    last         : page >= totalPages - 1,
+                    empty        : content.isEmpty()
+                ]))
             }
         }
 
@@ -1663,6 +1727,44 @@ ratpack {
 
         post('graphql') {
             render('[]')
+        }
+
+        } // end prefix('api')
+
+        // ===== ROOT-LEVEL ALIASES (for Next.js proxy compatibility) =====
+
+        get('transaction/account/select/:accountNameOwner') { Context context, TransactionService transactionService, ObjectMapper objectMapper ->
+            context.request.getBody().then {
+                String accountNameOwner = pathTokens["accountNameOwner"]
+                render(objectMapper.writeValueAsString(transactionService.transactions(accountNameOwner)))
+            }
+        }
+
+        get('account/select/active') { Context context, AccountService accountService, ObjectMapper objectMapper ->
+            context.request.getBody().then {
+                render(objectMapper.writeValueAsString(accountService.accounts()))
+            }
+        }
+
+        post('transaction/insert') { Context context, TransactionService transactionService, ObjectMapper objectMapper ->
+            context.request.body.then {
+                try {
+                    Transaction transaction = objectMapper.readValue(it.text, Transaction)
+                    Transaction result = transactionService.transactionInsert(transaction)
+                    render(objectMapper.writeValueAsString(result))
+                } catch (RuntimeException e) {
+                    context.response.status(400)
+                    render('{"error":"' + e.message + '"}')
+                }
+            }
+        }
+
+        delete('transaction/delete/:guid') { Context context, TransactionService transactionService ->
+            context.request.getBody().then {
+                String guid = pathTokens["guid"]
+                transactionService.deleteTransaction(guid)
+                render('{}')
+            }
         }
 
         // ===== STATIC FILES =====
