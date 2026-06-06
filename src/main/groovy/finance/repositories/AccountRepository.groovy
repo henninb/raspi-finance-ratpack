@@ -75,7 +75,11 @@ class AccountRepository {
 
     List<Account> accountsRequiringPayment() {
         return dslContext.selectFrom(T_ACCOUNT)
-                .where(T_ACCOUNT.ACTIVE_STATUS.eq(true).and(T_ACCOUNT.PAYMENT_REQUIRED.eq(true)))
+                .where(T_ACCOUNT.ACTIVE_STATUS.eq(true)
+                    .and(T_ACCOUNT.ACCOUNT_TYPE.eq("credit"))
+                    .and(T_ACCOUNT.OUTSTANDING.gt(BigDecimal.ZERO)
+                        .or(T_ACCOUNT.FUTURE.gt(BigDecimal.ZERO))
+                        .or(T_ACCOUNT.CLEARED.gt(BigDecimal.ZERO))))
                 .orderBy(T_ACCOUNT.ACCOUNT_NAME_OWNER)
                 .fetchInto(Account)
     }
