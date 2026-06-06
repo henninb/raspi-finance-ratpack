@@ -6,6 +6,7 @@ import finance.domain.Payment
 import finance.domain.ReoccurringType
 import finance.domain.Transaction
 import finance.domain.TransactionState
+import finance.domain.TransactionType
 import finance.repositories.AccountRepository
 import finance.repositories.PaymentRepository
 import groovy.transform.CompileStatic
@@ -64,6 +65,7 @@ class PaymentService implements Service {
         sourceTransaction.amount = sourceAmount
         sourceTransaction.transactionState = TransactionState.outstanding
         sourceTransaction.reoccurringType = ReoccurringType.onetime
+        sourceTransaction.transactionType = TransactionType.undefined
         sourceTransaction.accountNameOwner = payment.sourceAccount
         sourceTransaction.owner = payment.owner
         sourceTransaction.activeStatus = true
@@ -82,6 +84,7 @@ class PaymentService implements Service {
         destinationTransaction.amount = destinationAmount
         destinationTransaction.transactionState = TransactionState.outstanding
         destinationTransaction.reoccurringType = ReoccurringType.onetime
+        destinationTransaction.transactionType = TransactionType.undefined
         destinationTransaction.accountNameOwner = payment.destinationAccount
         destinationTransaction.owner = payment.owner
         destinationTransaction.activeStatus = true

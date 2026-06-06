@@ -821,15 +821,43 @@ ratpack {
             }
         }
 
-        get('payment/:paymentId') { Context context, PaymentService paymentService, ObjectMapper objectMapper ->
-            context.request.getBody().then {
-                Long paymentId = Long.parseLong(pathTokens["paymentId"])
-                Payment payment = paymentService.payment(paymentId)
-                if (payment) {
-                    render(objectMapper.writeValueAsString(payment))
-                } else {
-                    context.response.status(404)
-                    render('{"error":"payment not found"}')
+        path('payment/:paymentId') { Context context, PaymentService paymentService, ObjectMapper objectMapper ->
+            Long paymentId = Long.parseLong(context.pathTokens["paymentId"])
+            byMethod {
+                get {
+                    context.request.getBody().then {
+                        Payment payment = paymentService.payment(paymentId)
+                        if (payment) {
+                            context.render(objectMapper.writeValueAsString(payment))
+                        } else {
+                            context.response.status(404)
+                            context.render('{"error":"payment not found"}')
+                        }
+                    }
+                }
+                put {
+                    context.request.body.then {
+                        try {
+                            Payment payment = objectMapper.readValue(it.text, Payment)
+                            payment.paymentId = paymentId
+                            Payment result = paymentService.paymentUpdate(payment)
+                            context.render(objectMapper.writeValueAsString(result))
+                        } catch (RuntimeException e) {
+                            context.response.status(404)
+                            context.render('{"error":"' + e.message + '"}')
+                        }
+                    }
+                }
+                delete {
+                    context.request.getBody().then {
+                        boolean deleted = paymentService.paymentDelete(paymentId)
+                        if (deleted) {
+                            context.render('{}')
+                        } else {
+                            context.response.status(404)
+                            context.render('{"error":"payment not found"}')
+                        }
+                    }
                 }
             }
         }
@@ -840,11 +868,11 @@ ratpack {
                     Payment payment = objectMapper.readValue(it.text, Payment)
                     payment.owner = principal.username
                     Payment result = paymentService.paymentInsert(payment)
-                    render(objectMapper.writeValueAsString(result))
+                    context.render(objectMapper.writeValueAsString(result))
                 } catch (Exception e) {
                     java.util.logging.Logger.getLogger("PaymentHandler").severe("payment insert error [${e.class.simpleName}]: ${e.message}")
                     context.response.status(400)
-                    render('{"error":"' + e.message + '"}')
+                    context.render('{"error":"' + e.message + '"}')
                 }
             }
         }
@@ -856,39 +884,11 @@ ratpack {
                     payment.owner = principal.username
                     Payment result = paymentService.paymentInsert(payment)
                     context.response.status(201)
-                    render(objectMapper.writeValueAsString(result))
+                    context.render(objectMapper.writeValueAsString(result))
                 } catch (Exception e) {
                     java.util.logging.Logger.getLogger("PaymentHandler").severe("payment insert error [${e.class.simpleName}]: ${e.message}")
                     context.response.status(400)
-                    render('{"error":"' + e.message + '"}')
-                }
-            }
-        }
-
-        put('payment/:paymentId') { Context context, PaymentService paymentService, ObjectMapper objectMapper ->
-            context.request.body.then {
-                Long paymentId = Long.parseLong(pathTokens["paymentId"])
-                try {
-                    Payment payment = objectMapper.readValue(it.text, Payment)
-                    payment.paymentId = paymentId
-                    Payment result = paymentService.paymentUpdate(payment)
-                    render(objectMapper.writeValueAsString(result))
-                } catch (RuntimeException e) {
-                    context.response.status(404)
-                    render('{"error":"' + e.message + '"}')
-                }
-            }
-        }
-
-        delete('payment/:paymentId') { Context context, PaymentService paymentService ->
-            context.request.getBody().then {
-                Long paymentId = Long.parseLong(pathTokens["paymentId"])
-                boolean deleted = paymentService.paymentDelete(paymentId)
-                if (deleted) {
-                    render('{}')
-                } else {
-                    context.response.status(404)
-                    render('{"error":"payment not found"}')
+                    context.render('{"error":"' + e.message + '"}')
                 }
             }
         }
@@ -1797,6 +1797,10 @@ ratpack {
                 transactionService.deleteTransaction(guid)
                 render('{}')
             }
+        }
+
+        post('graphql') {
+            render('[]')
         }
 
         // ===== STATIC FILES =====
