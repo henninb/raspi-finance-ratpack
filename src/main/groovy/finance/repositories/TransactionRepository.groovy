@@ -22,16 +22,32 @@ class TransactionRepository {
     }
 
     boolean transactionInsert(Transaction transaction) {
-        dslContext.newRecord(T_TRANSACTION, transaction).store()
+        dslContext.insertInto(T_TRANSACTION)
+                .set(T_TRANSACTION.OWNER, transaction.owner ?: "")
+                .set(T_TRANSACTION.GUID, (String) transaction.guid)
+                .set(T_TRANSACTION.ACCOUNT_ID, (Long) transaction.accountId)
+                .set(T_TRANSACTION.ACCOUNT_NAME_OWNER, (String) transaction.accountNameOwner)
+                .set(T_TRANSACTION.ACCOUNT_TYPE, (String) transaction.accountType?.name()?.toLowerCase())
+                .set(T_TRANSACTION.TRANSACTION_STATE, (String) transaction.transactionState?.name()?.toLowerCase())
+                .set(T_TRANSACTION.TRANSACTION_DATE, (java.time.LocalDate) transaction.transactionDate?.toLocalDate())
+                .set(T_TRANSACTION.DUE_DATE, (java.time.LocalDate) transaction.dueDate?.toLocalDate())
+                .set(T_TRANSACTION.AMOUNT, (BigDecimal) transaction.amount)
+                .set(T_TRANSACTION.CATEGORY, (String) transaction.category)
+                .set(T_TRANSACTION.DESCRIPTION, (String) transaction.description)
+                .set(T_TRANSACTION.NOTES, transaction.notes ?: "")
+                .set(T_TRANSACTION.ACTIVE_STATUS, (Boolean) transaction.activeStatus)
+                .set(T_TRANSACTION.TRANSACTION_TYPE, (String) transaction.transactionType?.name()?.toLowerCase())
+                .set(T_TRANSACTION.REOCCURRING_TYPE, (String) transaction.reoccurringType?.name()?.toLowerCase())
+                .execute()
         return true
     }
 
     boolean transactionUpdate(Transaction transaction) {
         dslContext.update(T_TRANSACTION)
-                .set(T_TRANSACTION.DESCRIPTION, transaction.description)
-                .set(T_TRANSACTION.CATEGORY, transaction.category)
-                .set(T_TRANSACTION.AMOUNT, transaction.amount)
-                .set(T_TRANSACTION.TRANSACTION_STATE, transaction.transactionState?.name()?.toLowerCase())
+                .set(T_TRANSACTION.DESCRIPTION, (String) transaction.description)
+                .set(T_TRANSACTION.CATEGORY, (String) transaction.category)
+                .set(T_TRANSACTION.AMOUNT, (BigDecimal) transaction.amount)
+                .set(T_TRANSACTION.TRANSACTION_STATE, (String) transaction.transactionState?.name()?.toLowerCase())
                 .set(T_TRANSACTION.NOTES, transaction.notes ?: "")
                 .where(T_TRANSACTION.GUID.eq(transaction.guid))
                 .execute()
@@ -52,8 +68,9 @@ class TransactionRepository {
 
     List<Transaction> transactions(String accountNameOwner) {
         return dslContext.selectFrom(T_TRANSACTION)
-                .where(T_TRANSACTION.ACCOUNT_NAME_OWNER.equal(accountNameOwner))
-                .orderBy(T_TRANSACTION.TRANSACTION_STATE.desc(), T_TRANSACTION.TRANSACTION_DATE.desc())
+                .where(T_TRANSACTION.ACCOUNT_NAME_OWNER.equal(accountNameOwner)
+                        .and(T_TRANSACTION.ACTIVE_STATUS.eq(true)))
+                .orderBy(T_TRANSACTION.TRANSACTION_DATE.desc())
                 .fetchInto(Transaction)
     }
 

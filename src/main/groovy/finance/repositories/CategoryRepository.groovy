@@ -22,7 +22,11 @@ class CategoryRepository {
     }
 
     boolean categoryInsert(Category category) {
-        dslContext.newRecord(T_CATEGORY, category).store()
+        dslContext.insertInto(T_CATEGORY)
+                .set(T_CATEGORY.OWNER, category.owner ?: "")
+                .set(T_CATEGORY.CATEGORY_NAME, category.categoryName)
+                .set(T_CATEGORY.ACTIVE_STATUS, category.activeStatus)
+                .execute()
         return true
     }
 
@@ -58,6 +62,13 @@ class CategoryRepository {
     Category category(String categoryName) {
         return dslContext.selectFrom(T_CATEGORY)
                 .where(T_CATEGORY.CATEGORY_NAME.equal(categoryName))
+                .limit(1)
+                .fetchOneInto(Category)
+    }
+
+    Category category(String owner, String categoryName) {
+        return dslContext.selectFrom(T_CATEGORY)
+                .where(T_CATEGORY.OWNER.equal(owner).and(T_CATEGORY.CATEGORY_NAME.equal(categoryName)))
                 .fetchOneInto(Category)
     }
 

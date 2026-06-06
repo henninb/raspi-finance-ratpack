@@ -494,115 +494,123 @@ ratpack {
             }
         }
 
-        get('transaction/:guid') { Context context, TransactionService transactionService, ObjectMapper objectMapper ->
-            context.request.getBody().then {
-                String guid = pathTokens["guid"]
-                Transaction transaction = transactionService.transaction(guid)
-                if (transaction) {
-                    render(objectMapper.writeValueAsString(transaction))
-                } else {
-                    context.response.status(404)
-                    render('{"error":"transaction not found"}')
+        path('transaction/:guid') { Context context, TransactionService transactionService, ObjectMapper objectMapper ->
+            String guid = context.pathTokens["guid"]
+            byMethod {
+                get {
+                    context.request.getBody().then {
+                        Transaction transaction = transactionService.transaction(guid)
+                        if (transaction) {
+                            context.render(objectMapper.writeValueAsString(transaction))
+                        } else {
+                            context.response.status(404)
+                            context.render('{"error":"transaction not found"}')
+                        }
+                    }
+                }
+                put {
+                    context.request.body.then {
+                        try {
+                            Transaction transaction = objectMapper.readValue(it.text, Transaction)
+                            transaction.guid = guid
+                            transactionService.transactionUpdate(transaction)
+                            context.render(objectMapper.writeValueAsString(transaction))
+                        } catch (RuntimeException e) {
+                            context.response.status(400)
+                            context.render('{"error":"' + e.message + '"}')
+                        }
+                    }
+                }
+                delete {
+                    context.request.getBody().then {
+                        boolean deleted = transactionService.deleteTransaction(guid)
+                        if (deleted) {
+                            context.render('{}')
+                        } else {
+                            context.response.status(404)
+                            context.render('{"error":"transaction not found"}')
+                        }
+                    }
                 }
             }
         }
 
-        post('transaction/insert') { Context context, TransactionService transactionService, ObjectMapper objectMapper ->
+        post('transaction/insert') { Context context, TransactionService transactionService, ObjectMapper objectMapper, AuthenticatedUser principal ->
             context.request.body.then {
                 try {
                     Transaction transaction = objectMapper.readValue(it.text, Transaction)
+                    transaction.owner = principal.username
                     Transaction result = transactionService.transactionInsert(transaction)
-                    render(objectMapper.writeValueAsString(result))
+                    context.render(objectMapper.writeValueAsString(result))
                 } catch (RuntimeException e) {
+                    System.err.println("transaction/insert error: ${e.class.simpleName}: ${e.message}")
+                    e.printStackTrace()
                     context.response.status(400)
-                    render('{"error":"' + e.message + '"}')
+                    context.render('{"error":"' + e.message + '"}')
                 }
             }
         }
 
-        post('transaction') { Context context, TransactionService transactionService, ObjectMapper objectMapper ->
+        post('transaction') { Context context, TransactionService transactionService, ObjectMapper objectMapper, AuthenticatedUser principal ->
             context.request.body.then {
                 try {
                     Transaction transaction = objectMapper.readValue(it.text, Transaction)
+                    transaction.owner = principal.username
                     Transaction result = transactionService.transactionInsert(transaction)
                     context.response.status(201)
-                    render(objectMapper.writeValueAsString(result))
+                    context.render(objectMapper.writeValueAsString(result))
                 } catch (RuntimeException e) {
+                    System.err.println("transaction insert error: ${e.class.simpleName}: ${e.message}")
+                    e.printStackTrace()
                     context.response.status(400)
-                    render('{"error":"' + e.message + '"}')
+                    context.render('{"error":"' + e.message + '"}')
                 }
             }
         }
 
-        post('transaction/future/insert') { Context context, TransactionService transactionService, ObjectMapper objectMapper ->
+        post('transaction/future/insert') { Context context, TransactionService transactionService, ObjectMapper objectMapper, AuthenticatedUser principal ->
             context.request.body.then {
                 try {
                     Transaction transaction = objectMapper.readValue(it.text, Transaction)
+                    transaction.owner = principal.username
                     Transaction result = transactionService.transactionInsert(transaction)
-                    render(objectMapper.writeValueAsString(result))
+                    context.render(objectMapper.writeValueAsString(result))
                 } catch (RuntimeException e) {
                     context.response.status(400)
-                    render('{"error":"' + e.message + '"}')
+                    context.render('{"error":"' + e.message + '"}')
                 }
             }
         }
 
-        post('transaction/future') { Context context, TransactionService transactionService, ObjectMapper objectMapper ->
+        post('transaction/future') { Context context, TransactionService transactionService, ObjectMapper objectMapper, AuthenticatedUser principal ->
             context.request.body.then {
                 try {
                     Transaction transaction = objectMapper.readValue(it.text, Transaction)
+                    transaction.owner = principal.username
                     Transaction result = transactionService.transactionInsert(transaction)
                     context.response.status(201)
-                    render(objectMapper.writeValueAsString(result))
+                    context.render(objectMapper.writeValueAsString(result))
                 } catch (RuntimeException e) {
                     context.response.status(400)
-                    render('{"error":"' + e.message + '"}')
+                    context.render('{"error":"' + e.message + '"}')
                 }
             }
         }
 
         put('transaction/state/update/:guid/:transactionState') { Context context, TransactionService transactionService ->
             context.request.body.then {
-                String guid = pathTokens["guid"]
-                String transactionState = pathTokens["transactionState"]
+                String guid = context.pathTokens["guid"]
+                String transactionState = context.pathTokens["transactionState"]
                 transactionService.transactionStateUpdate(guid, transactionState)
-                render('{}')
-            }
-        }
-
-        put('transaction/:guid') { Context context, TransactionService transactionService, ObjectMapper objectMapper ->
-            context.request.body.then {
-                String guid = pathTokens["guid"]
-                try {
-                    Transaction transaction = objectMapper.readValue(it.text, Transaction)
-                    transaction.guid = guid
-                    transactionService.transactionUpdate(transaction)
-                    render(objectMapper.writeValueAsString(transaction))
-                } catch (RuntimeException e) {
-                    context.response.status(404)
-                    render('{"error":"' + e.message + '"}')
-                }
+                context.render('{}')
             }
         }
 
         delete('transaction/delete/:guid') { Context context, TransactionService transactionService ->
             context.request.getBody().then {
-                String guid = pathTokens["guid"]
+                String guid = context.pathTokens["guid"]
                 transactionService.deleteTransaction(guid)
-                render('{}')
-            }
-        }
-
-        delete('transaction/:guid') { Context context, TransactionService transactionService ->
-            context.request.getBody().then {
-                String guid = pathTokens["guid"]
-                boolean deleted = transactionService.deleteTransaction(guid)
-                if (deleted) {
-                    render('{}')
-                } else {
-                    context.response.status(404)
-                    render('{"error":"transaction not found"}')
-                }
+                context.render('{}')
             }
         }
 
@@ -826,20 +834,34 @@ ratpack {
             }
         }
 
-        post('payment/insert') { Context context, PaymentService paymentService, ObjectMapper objectMapper ->
+        post('payment/insert') { Context context, PaymentService paymentService, ObjectMapper objectMapper, AuthenticatedUser principal ->
             context.request.body.then {
-                Payment payment = objectMapper.readValue(it.text, Payment)
-                Payment result = paymentService.paymentInsert(payment)
-                render(objectMapper.writeValueAsString(result))
+                try {
+                    Payment payment = objectMapper.readValue(it.text, Payment)
+                    payment.owner = principal.username
+                    Payment result = paymentService.paymentInsert(payment)
+                    render(objectMapper.writeValueAsString(result))
+                } catch (Exception e) {
+                    java.util.logging.Logger.getLogger("PaymentHandler").severe("payment insert error [${e.class.simpleName}]: ${e.message}")
+                    context.response.status(400)
+                    render('{"error":"' + e.message + '"}')
+                }
             }
         }
 
-        post('payment') { Context context, PaymentService paymentService, ObjectMapper objectMapper ->
+        post('payment') { Context context, PaymentService paymentService, ObjectMapper objectMapper, AuthenticatedUser principal ->
             context.request.body.then {
-                Payment payment = objectMapper.readValue(it.text, Payment)
-                Payment result = paymentService.paymentInsert(payment)
-                context.response.status(201)
-                render(objectMapper.writeValueAsString(result))
+                try {
+                    Payment payment = objectMapper.readValue(it.text, Payment)
+                    payment.owner = principal.username
+                    Payment result = paymentService.paymentInsert(payment)
+                    context.response.status(201)
+                    render(objectMapper.writeValueAsString(result))
+                } catch (Exception e) {
+                    java.util.logging.Logger.getLogger("PaymentHandler").severe("payment insert error [${e.class.simpleName}]: ${e.message}")
+                    context.response.status(400)
+                    render('{"error":"' + e.message + '"}')
+                }
             }
         }
 
@@ -1057,14 +1079,16 @@ ratpack {
             }
         }
 
-        post('transfer') { Context context, TransferService transferService, ObjectMapper objectMapper ->
+        post('transfer') { Context context, TransferService transferService, ObjectMapper objectMapper, AuthenticatedUser principal ->
             context.request.body.then {
                 try {
                     Transfer transfer = objectMapper.readValue(it.text, Transfer)
+                    transfer.owner = principal.username
                     Transfer result = transferService.transferInsert(transfer)
                     context.response.status(201)
                     render(objectMapper.writeValueAsString(result))
-                } catch (RuntimeException e) {
+                } catch (Exception e) {
+                    java.util.logging.Logger.getLogger("TransferHandler").severe("transfer insert error [${e.class.simpleName}]: ${e.message}")
                     context.response.status(400)
                     render('{"error":"' + e.message + '"}')
                 }

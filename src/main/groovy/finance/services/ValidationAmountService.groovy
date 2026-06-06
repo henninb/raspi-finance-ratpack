@@ -46,10 +46,12 @@ class ValidationAmountService implements Service {
     }
 
     ValidationAmount validationAmountInsert(String accountNameOwner, ValidationAmount validationAmount) {
-        Account account = accountRepository.account(accountNameOwner)
+        if (accountNameOwner) {
+            Account account = accountRepository.account(accountNameOwner)
+            validationAmount.accountId = account.accountId
+        }
         validationAmount.dateUpdated = new Timestamp(System.currentTimeMillis())
         validationAmount.dateAdded = new Timestamp(System.currentTimeMillis())
-        validationAmount.accountId = account.accountId
         validationAmountRepository.validationAmountInsert(validationAmount)
         return validationAmount
     }

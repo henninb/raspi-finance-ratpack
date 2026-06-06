@@ -7,6 +7,7 @@ import java.sql.Timestamp
 @ToString
 class Description {
     Long descriptionId
+    String owner = ""
     String descriptionName
     Boolean activeStatus
     Timestamp dateUpdated = new Timestamp(System.currentTimeMillis())

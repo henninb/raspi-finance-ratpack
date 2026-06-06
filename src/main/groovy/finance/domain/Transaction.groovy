@@ -1,13 +1,16 @@
 package finance.domain
 
 import com.fasterxml.jackson.annotation.JsonGetter
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 
 import java.sql.Date
 import java.sql.Timestamp
 import java.text.SimpleDateFormat
 
+@JsonIgnoreProperties(ignoreUnknown = true)
 class Transaction {
     Long transactionId
+    String owner = ""
     String guid
     Long accountId
     AccountType accountType
@@ -20,6 +23,7 @@ class Transaction {
     String category
     BigDecimal amount
     TransactionState transactionState
+    TransactionType transactionType
     ReoccurringType reoccurringType
     String notes
     Boolean activeStatus

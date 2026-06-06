@@ -7,6 +7,7 @@ import java.sql.Timestamp
 @ToString
 class Category {
     Long categoryId
+    String owner = ""
     String categoryName
     Boolean activeStatus
     Timestamp dateUpdated = new Timestamp(System.currentTimeMillis())

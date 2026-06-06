@@ -22,7 +22,13 @@ class AccountRepository {
     }
 
     boolean accountInsert(Account account) {
-        dslContext.newRecord(T_ACCOUNT, account).store()
+        dslContext.insertInto(T_ACCOUNT)
+                .set(T_ACCOUNT.OWNER, account.owner ?: "")
+                .set(T_ACCOUNT.ACCOUNT_NAME_OWNER, (String) account.accountNameOwner)
+                .set(T_ACCOUNT.ACCOUNT_TYPE, (String) account.accountType?.name()?.toLowerCase())
+                .set(T_ACCOUNT.ACTIVE_STATUS, (Boolean) account.activeStatus)
+                .set(T_ACCOUNT.MONIKER, account.moniker ?: "0000")
+                .execute()
         return true
     }
 

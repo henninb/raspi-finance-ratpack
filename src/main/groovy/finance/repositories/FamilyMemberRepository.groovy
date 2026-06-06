@@ -33,7 +33,16 @@ class FamilyMemberRepository {
     }
 
     boolean familyMemberInsert(FamilyMember familyMember) {
-        dslContext.newRecord(T_FAMILY_MEMBER, familyMember).store()
+        dslContext.insertInto(T_FAMILY_MEMBER)
+                .set(T_FAMILY_MEMBER.OWNER, familyMember.owner ?: "")
+                .set(T_FAMILY_MEMBER.MEMBER_NAME, (String) familyMember.memberName)
+                .set(T_FAMILY_MEMBER.RELATIONSHIP, (String) familyMember.relationship)
+                .set(T_FAMILY_MEMBER.DATE_OF_BIRTH, (java.time.LocalDate) familyMember.dateOfBirth?.toLocalDate())
+                .set(T_FAMILY_MEMBER.INSURANCE_MEMBER_ID, (String) familyMember.insuranceMemberId)
+                .set(T_FAMILY_MEMBER.SSN_LAST_FOUR, (String) familyMember.ssnLastFour)
+                .set(T_FAMILY_MEMBER.MEDICAL_RECORD_NUMBER, (String) familyMember.medicalRecordNumber)
+                .set(T_FAMILY_MEMBER.ACTIVE_STATUS, (Boolean) familyMember.activeStatus)
+                .execute()
         return true
     }
 

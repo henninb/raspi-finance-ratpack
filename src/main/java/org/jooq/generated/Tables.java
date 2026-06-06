@@ -30,6 +30,7 @@ public class Tables {
 
     public static class TAccount extends TableImpl<org.jooq.Record> {
         public final Field<Long> ACCOUNT_ID = createField(DSL.name("account_id"), SQLDataType.BIGINT);
+        public final Field<String> OWNER = createField(DSL.name("owner"), SQLDataType.VARCHAR);
         public final Field<String> ACCOUNT_NAME_OWNER = createField(DSL.name("account_name_owner"), SQLDataType.VARCHAR);
         public final Field<String> ACCOUNT_TYPE = createField(DSL.name("account_type"), SQLDataType.VARCHAR);
         public final Field<Boolean> ACTIVE_STATUS = createField(DSL.name("active_status"), SQLDataType.BOOLEAN);
@@ -49,6 +50,8 @@ public class Tables {
     }
 
     public static class TCategory extends TableImpl<org.jooq.Record> {
+        public final Field<Long> CATEGORY_ID = createField(DSL.name("category_id"), SQLDataType.BIGINT);
+        public final Field<String> OWNER = createField(DSL.name("owner"), SQLDataType.VARCHAR);
         public final Field<String> CATEGORY_NAME = createField(DSL.name("category_name"), SQLDataType.VARCHAR);
         public final Field<Boolean> ACTIVE_STATUS = createField(DSL.name("active_status"), SQLDataType.BOOLEAN);
 
@@ -56,6 +59,8 @@ public class Tables {
     }
 
     public static class TDescription extends TableImpl<org.jooq.Record> {
+        public final Field<Long> DESCRIPTION_ID = createField(DSL.name("description_id"), SQLDataType.BIGINT);
+        public final Field<String> OWNER = createField(DSL.name("owner"), SQLDataType.VARCHAR);
         public final Field<String> DESCRIPTION_NAME = createField(DSL.name("description_name"), SQLDataType.VARCHAR);
         public final Field<Boolean> ACTIVE_STATUS = createField(DSL.name("active_status"), SQLDataType.BOOLEAN);
 
@@ -131,6 +136,8 @@ public class Tables {
     }
 
     public static class TParameter extends TableImpl<org.jooq.Record> {
+        public final Field<Long> PARAMETER_ID = createField(DSL.name("parameter_id"), SQLDataType.BIGINT);
+        public final Field<String> OWNER = createField(DSL.name("owner"), SQLDataType.VARCHAR);
         public final Field<String> PARAMETER_NAME = createField(DSL.name("parameter_name"), SQLDataType.VARCHAR);
         public final Field<String> PARAMETER_VALUE = createField(DSL.name("parameter_value"), SQLDataType.VARCHAR);
         public final Field<Boolean> ACTIVE_STATUS = createField(DSL.name("active_status"), SQLDataType.BOOLEAN);
@@ -140,9 +147,16 @@ public class Tables {
 
     public static class TPayment extends TableImpl<org.jooq.Record> {
         public final Field<Long> PAYMENT_ID = createField(DSL.name("payment_id"), SQLDataType.BIGINT);
-        public final Field<String> ACCOUNT_NAME_OWNER = createField(DSL.name("account_name_owner"), SQLDataType.VARCHAR);
+        public final Field<String> OWNER = createField(DSL.name("owner"), SQLDataType.VARCHAR);
+        public final Field<String> SOURCE_ACCOUNT = createField(DSL.name("source_account"), SQLDataType.VARCHAR);
+        public final Field<String> DESTINATION_ACCOUNT = createField(DSL.name("destination_account"), SQLDataType.VARCHAR);
         public final Field<BigDecimal> AMOUNT = createField(DSL.name("amount"), SQLDataType.DECIMAL);
         public final Field<java.sql.Date> TRANSACTION_DATE = createField(DSL.name("transaction_date"), SQLDataType.DATE);
+        public final Field<String> GUID_SOURCE = createField(DSL.name("guid_source"), SQLDataType.VARCHAR);
+        public final Field<String> GUID_DESTINATION = createField(DSL.name("guid_destination"), SQLDataType.VARCHAR);
+        public final Field<Boolean> ACTIVE_STATUS = createField(DSL.name("active_status"), SQLDataType.BOOLEAN);
+        public final Field<java.sql.Timestamp> DATE_UPDATED = createField(DSL.name("date_updated"), SQLDataType.TIMESTAMP);
+        public final Field<java.sql.Timestamp> DATE_ADDED = createField(DSL.name("date_added"), SQLDataType.TIMESTAMP);
 
         public TPayment() { super(DSL.name("t_payment")); }
     }
@@ -159,6 +173,7 @@ public class Tables {
 
     public static class TTransaction extends TableImpl<org.jooq.Record> {
         public final Field<Long> TRANSACTION_ID = createField(DSL.name("transaction_id"), SQLDataType.BIGINT);
+        public final Field<String> OWNER = createField(DSL.name("owner"), SQLDataType.VARCHAR);
         public final Field<String> GUID = createField(DSL.name("guid"), SQLDataType.VARCHAR);
         public final Field<Long> ACCOUNT_ID = createField(DSL.name("account_id"), SQLDataType.BIGINT);
         public final Field<String> ACCOUNT_NAME_OWNER = createField(DSL.name("account_name_owner"), SQLDataType.VARCHAR);
@@ -181,10 +196,13 @@ public class Tables {
 
     public static class TTransfer extends TableImpl<org.jooq.Record> {
         public final Field<Long> TRANSFER_ID = createField(DSL.name("transfer_id"), SQLDataType.BIGINT);
+        public final Field<String> OWNER = createField(DSL.name("owner"), SQLDataType.VARCHAR);
         public final Field<String> SOURCE_ACCOUNT = createField(DSL.name("source_account"), SQLDataType.VARCHAR);
         public final Field<String> DESTINATION_ACCOUNT = createField(DSL.name("destination_account"), SQLDataType.VARCHAR);
         public final Field<BigDecimal> AMOUNT = createField(DSL.name("amount"), SQLDataType.DECIMAL);
         public final Field<java.sql.Date> TRANSACTION_DATE = createField(DSL.name("transaction_date"), SQLDataType.DATE);
+        public final Field<String> GUID_SOURCE = createField(DSL.name("guid_source"), SQLDataType.VARCHAR);
+        public final Field<String> GUID_DESTINATION = createField(DSL.name("guid_destination"), SQLDataType.VARCHAR);
         public final Field<Boolean> ACTIVE_STATUS = createField(DSL.name("active_status"), SQLDataType.BOOLEAN);
 
         public TTransfer() { super(DSL.name("t_transfer")); }
@@ -206,6 +224,7 @@ public class Tables {
     public static class TValidationAmount extends TableImpl<org.jooq.Record> {
         public final Field<Long> VALIDATION_ID = createField(DSL.name("validation_id"), SQLDataType.BIGINT);
         public final Field<Long> ACCOUNT_ID = createField(DSL.name("account_id"), SQLDataType.BIGINT);
+        public final Field<String> OWNER = createField(DSL.name("owner"), SQLDataType.VARCHAR);
         public final Field<BigDecimal> AMOUNT = createField(DSL.name("amount"), SQLDataType.DECIMAL);
         public final Field<String> TRANSACTION_STATE = createField(DSL.name("transaction_state"), SQLDataType.VARCHAR);
         public final Field<Boolean> ACTIVE_STATUS = createField(DSL.name("active_status"), SQLDataType.BOOLEAN);

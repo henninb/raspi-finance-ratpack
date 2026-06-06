@@ -7,6 +7,7 @@ import java.sql.Timestamp
 @ToString
 class Account {
     Long accountId
+    String owner = ""
     String accountNameOwner
     AccountType accountType
     Boolean activeStatus

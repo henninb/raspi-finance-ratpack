@@ -10,7 +10,9 @@ import java.text.SimpleDateFormat
 @ToString
 class Payment {
     Long paymentId
-    String accountNameOwner
+    String owner = ""
+    String sourceAccount
+    String destinationAccount
     BigDecimal amount
     Date transactionDate
     String guidSource

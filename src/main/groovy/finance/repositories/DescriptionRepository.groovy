@@ -22,7 +22,11 @@ class DescriptionRepository {
     }
 
     boolean descriptionInsert(Description description) {
-        dslContext.newRecord(T_DESCRIPTION, description).store()
+        dslContext.insertInto(T_DESCRIPTION)
+                .set(T_DESCRIPTION.OWNER, description.owner ?: "")
+                .set(T_DESCRIPTION.DESCRIPTION_NAME, description.descriptionName)
+                .set(T_DESCRIPTION.ACTIVE_STATUS, description.activeStatus)
+                .execute()
         return true
     }
 
@@ -59,6 +63,13 @@ class DescriptionRepository {
     Description description(String descriptionName) {
         return dslContext.selectFrom(T_DESCRIPTION)
                 .where(T_DESCRIPTION.DESCRIPTION_NAME.equal(descriptionName))
+                .limit(1)
+                .fetchOneInto(Description)
+    }
+
+    Description description(String owner, String descriptionName) {
+        return dslContext.selectFrom(T_DESCRIPTION)
+                .where(T_DESCRIPTION.OWNER.equal(owner).and(T_DESCRIPTION.DESCRIPTION_NAME.equal(descriptionName)))
                 .fetchOneInto(Description)
     }
 

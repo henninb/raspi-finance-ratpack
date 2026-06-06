@@ -43,7 +43,26 @@ class MedicalExpenseRepository {
     }
 
     boolean medicalExpenseInsert(MedicalExpense medicalExpense) {
-        dslContext.newRecord(T_MEDICAL_EXPENSE, medicalExpense).store()
+        dslContext.insertInto(T_MEDICAL_EXPENSE)
+                .set(T_MEDICAL_EXPENSE.OWNER, medicalExpense.owner ?: "")
+                .set(T_MEDICAL_EXPENSE.TRANSACTION_ID, (Long) medicalExpense.transactionId)
+                .set(T_MEDICAL_EXPENSE.PROVIDER_ID, (Long) medicalExpense.providerId)
+                .set(T_MEDICAL_EXPENSE.FAMILY_MEMBER_ID, (Long) medicalExpense.familyMemberId)
+                .set(T_MEDICAL_EXPENSE.SERVICE_DATE, (java.time.LocalDate) medicalExpense.serviceDate?.toLocalDate())
+                .set(T_MEDICAL_EXPENSE.SERVICE_DESCRIPTION, (String) medicalExpense.serviceDescription)
+                .set(T_MEDICAL_EXPENSE.PROCEDURE_CODE, (String) medicalExpense.procedureCode)
+                .set(T_MEDICAL_EXPENSE.DIAGNOSIS_CODE, (String) medicalExpense.diagnosisCode)
+                .set(T_MEDICAL_EXPENSE.BILLED_AMOUNT, (BigDecimal) medicalExpense.billedAmount)
+                .set(T_MEDICAL_EXPENSE.INSURANCE_DISCOUNT, (BigDecimal) medicalExpense.insuranceDiscount)
+                .set(T_MEDICAL_EXPENSE.INSURANCE_PAID, (BigDecimal) medicalExpense.insurancePaid)
+                .set(T_MEDICAL_EXPENSE.PATIENT_RESPONSIBILITY, (BigDecimal) medicalExpense.patientResponsibility)
+                .set(T_MEDICAL_EXPENSE.PAID_DATE, (java.time.LocalDate) medicalExpense.paidDate?.toLocalDate())
+                .set(T_MEDICAL_EXPENSE.IS_OUT_OF_NETWORK, (Boolean) medicalExpense.isOutOfNetwork)
+                .set(T_MEDICAL_EXPENSE.CLAIM_NUMBER, (String) medicalExpense.claimNumber)
+                .set(T_MEDICAL_EXPENSE.CLAIM_STATUS, (String) medicalExpense.claimStatus)
+                .set(T_MEDICAL_EXPENSE.ACTIVE_STATUS, (Boolean) medicalExpense.activeStatus)
+                .set(T_MEDICAL_EXPENSE.PAID_AMOUNT, (BigDecimal) medicalExpense.paidAmount)
+                .execute()
         return true
     }
 

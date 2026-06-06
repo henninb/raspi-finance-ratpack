@@ -21,7 +21,12 @@ class ParameterRepository {
     }
 
     boolean parameterInsert(Parameter parameter) {
-        dslContext.newRecord(T_PARAMETER, parameter).store()
+        dslContext.insertInto(T_PARAMETER)
+                .set(T_PARAMETER.OWNER, parameter.owner ?: "")
+                .set(T_PARAMETER.PARAMETER_NAME, parameter.parameterName)
+                .set(T_PARAMETER.PARAMETER_VALUE, parameter.parameterValue)
+                .set(T_PARAMETER.ACTIVE_STATUS, parameter.activeStatus)
+                .execute()
         return true
     }
 

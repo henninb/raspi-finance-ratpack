@@ -21,7 +21,16 @@ class TransferRepository {
     }
 
     boolean transferInsert(Transfer transfer) {
-        dslContext.newRecord(T_TRANSFER, transfer).store()
+        dslContext.insertInto(T_TRANSFER)
+                .set(T_TRANSFER.OWNER, transfer.owner ?: "")
+                .set(T_TRANSFER.SOURCE_ACCOUNT, (String) transfer.sourceAccount)
+                .set(T_TRANSFER.DESTINATION_ACCOUNT, (String) transfer.destinationAccount)
+                .set(T_TRANSFER.AMOUNT, (BigDecimal) transfer.amount)
+                .set(T_TRANSFER.TRANSACTION_DATE, (java.time.LocalDate) transfer.transactionDate?.toLocalDate())
+                .set(T_TRANSFER.GUID_SOURCE, (String) transfer.guidSource)
+                .set(T_TRANSFER.GUID_DESTINATION, (String) transfer.guidDestination)
+                .set(T_TRANSFER.ACTIVE_STATUS, (Boolean) transfer.activeStatus)
+                .execute()
         return true
     }
 

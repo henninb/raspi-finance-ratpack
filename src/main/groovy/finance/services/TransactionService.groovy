@@ -3,9 +3,11 @@ package finance.services
 import finance.domain.Account
 import finance.domain.BonusProgress
 import finance.domain.Category
+import finance.domain.Description
 import finance.domain.Transaction
 import finance.repositories.AccountRepository
 import finance.repositories.CategoryRepository
+import finance.repositories.DescriptionRepository
 import finance.repositories.TransactionRepository
 import groovy.transform.CompileStatic
 import groovy.util.logging.Log
@@ -23,12 +25,14 @@ class TransactionService implements Service {
     private TransactionRepository transactionRepository
     private AccountRepository accountRepository
     private CategoryRepository categoryRepository
+    private DescriptionRepository descriptionRepository
 
     @Inject
-    TransactionService(TransactionRepository transactionRepository, AccountRepository accountRepository, CategoryRepository categoryRepository) {
+    TransactionService(TransactionRepository transactionRepository, AccountRepository accountRepository, CategoryRepository categoryRepository, DescriptionRepository descriptionRepository) {
         this.transactionRepository = transactionRepository
         this.accountRepository = accountRepository
         this.categoryRepository = categoryRepository
+        this.descriptionRepository = descriptionRepository
     }
 
     List<Transaction> transactionsAll() {
@@ -63,11 +67,19 @@ class TransactionService implements Service {
         transaction.dateUpdated = new Timestamp(System.currentTimeMillis())
         transaction.dateAdded = new Timestamp(System.currentTimeMillis())
 
-        Category category = categoryRepository.category(transaction.category)
+        Category category = categoryRepository.category(transaction.owner, transaction.category)
         if (!category) {
             categoryRepository.categoryInsert(
-                    new Category(categoryName: transaction.category, activeStatus: true)
+                    new Category(categoryName: transaction.category, owner: transaction.owner, activeStatus: true)
             )
+        }
+        if (transaction.description) {
+            Description description = descriptionRepository.description(transaction.owner, transaction.description)
+            if (!description) {
+                descriptionRepository.descriptionInsert(
+                        new Description(descriptionName: transaction.description, owner: transaction.owner, activeStatus: true)
+                )
+            }
         }
         Account account = accountRepository.account(transaction.accountNameOwner)
         if (account) {
@@ -84,6 +96,19 @@ class TransactionService implements Service {
         Transaction existing = transactionRepository.transaction(transaction.guid)
         if (!existing) {
             throw new RuntimeException("transaction not found: ${transaction.guid}")
+        }
+        String owner = existing.owner
+        if (transaction.category) {
+            Category category = categoryRepository.category(owner, transaction.category)
+            if (!category) {
+                categoryRepository.categoryInsert(new Category(categoryName: transaction.category, owner: owner, activeStatus: true))
+            }
+        }
+        if (transaction.description) {
+            Description description = descriptionRepository.description(owner, transaction.description)
+            if (!description) {
+                descriptionRepository.descriptionInsert(new Description(descriptionName: transaction.description, owner: owner, activeStatus: true))
+            }
         }
         return transactionRepository.transactionUpdate(transaction)
     }
