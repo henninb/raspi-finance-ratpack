@@ -21,7 +21,7 @@ class TransferRepository {
     }
 
     boolean transferInsert(Transfer transfer) {
-        dslContext.insertInto(T_TRANSFER)
+        def record = dslContext.insertInto(T_TRANSFER)
                 .set(T_TRANSFER.OWNER, transfer.owner ?: "")
                 .set(T_TRANSFER.SOURCE_ACCOUNT, (String) transfer.sourceAccount)
                 .set(T_TRANSFER.DESTINATION_ACCOUNT, (String) transfer.destinationAccount)
@@ -30,7 +30,9 @@ class TransferRepository {
                 .set(T_TRANSFER.GUID_SOURCE, (String) transfer.guidSource)
                 .set(T_TRANSFER.GUID_DESTINATION, (String) transfer.guidDestination)
                 .set(T_TRANSFER.ACTIVE_STATUS, (Boolean) transfer.activeStatus)
-                .execute()
+                .returning(T_TRANSFER.TRANSFER_ID)
+                .fetchOne()
+        transfer.transferId = record?.get(T_TRANSFER.TRANSFER_ID) as Long
         return true
     }
 

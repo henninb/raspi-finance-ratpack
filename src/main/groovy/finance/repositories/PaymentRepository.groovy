@@ -21,7 +21,7 @@ class PaymentRepository {
     }
 
     boolean paymentInsert(Payment payment) {
-        dslContext.insertInto(T_PAYMENT)
+        def record = dslContext.insertInto(T_PAYMENT)
                 .set(T_PAYMENT.OWNER, payment.owner ?: "")
                 .set(T_PAYMENT.SOURCE_ACCOUNT, (String) payment.sourceAccount)
                 .set(T_PAYMENT.DESTINATION_ACCOUNT, (String) payment.destinationAccount)
@@ -32,7 +32,9 @@ class PaymentRepository {
                 .set(T_PAYMENT.ACTIVE_STATUS, (Boolean) payment.activeStatus)
                 .set(T_PAYMENT.DATE_UPDATED, (java.sql.Timestamp) payment.dateUpdated)
                 .set(T_PAYMENT.DATE_ADDED, (java.sql.Timestamp) payment.dateAdded)
-                .execute()
+                .returning(T_PAYMENT.PAYMENT_ID)
+                .fetchOne()
+        payment.paymentId = record?.get(T_PAYMENT.PAYMENT_ID) as Long
         return true
     }
 
