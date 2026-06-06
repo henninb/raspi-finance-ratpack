@@ -48,7 +48,9 @@ class PaymentRepository {
     }
 
     List<Payment> payments() {
-        return dslContext.selectFrom(T_PAYMENT).where().fetchInto(Payment)
+        return dslContext.selectFrom(T_PAYMENT)
+                .orderBy(T_PAYMENT.TRANSACTION_DATE.desc())
+                .fetchInto(Payment)
     }
 
     Payment payment(Long paymentId) {
@@ -62,5 +64,13 @@ class PaymentRepository {
                 .where(T_PAYMENT.PAYMENT_ID.equal(paymentId))
                 .execute()
         return true
+    }
+
+    boolean existsByTransactionGuid(String guid) {
+        return dslContext.fetchCount(
+            dslContext.selectFrom(T_PAYMENT)
+                .where(T_PAYMENT.GUID_SOURCE.eq(guid)
+                    .or(T_PAYMENT.GUID_DESTINATION.eq(guid)))
+        ) > 0
     }
 }

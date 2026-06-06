@@ -523,12 +523,17 @@ ratpack {
                 }
                 delete {
                     context.request.getBody().then {
-                        boolean deleted = transactionService.deleteTransaction(guid)
-                        if (deleted) {
-                            context.render('{}')
-                        } else {
-                            context.response.status(404)
-                            context.render('{"error":"transaction not found"}')
+                        try {
+                            boolean deleted = transactionService.deleteTransaction(guid)
+                            if (deleted) {
+                                context.render('{}')
+                            } else {
+                                context.response.status(404)
+                                context.render('{"error":"transaction not found"}')
+                            }
+                        } catch (RuntimeException e) {
+                            context.response.status(409)
+                            context.render('{"error":"' + e.message + '"}')
                         }
                     }
                 }
@@ -1755,10 +1760,69 @@ ratpack {
             }
         }
 
-        // ===== GRAPHQL (stub) =====
+        // ===== GRAPHQL =====
 
-        post('graphql') {
-            render('[]')
+        post('graphql') { Context context, TransferService transferService, AccountService accountService, PaymentService paymentService, ObjectMapper objectMapper, AuthenticatedUser principal ->
+            context.request.body.then {
+                try {
+                    Map body = objectMapper.readValue(it.text, Map)
+                    String query = (String) body.get("query") ?: ""
+                    Map variables = (Map) body.get("variables") ?: [:]
+                    Map data = [:]
+
+                    if (query.trim().startsWith("mutation")) {
+                        if (query.contains("createTransfer")) {
+                            Map t = (Map) variables.get("transfer") ?: [:]
+                            Transfer transfer = new Transfer()
+                            transfer.sourceAccount = (String) t.get("sourceAccount")
+                            transfer.destinationAccount = (String) t.get("destinationAccount")
+                            transfer.amount = new BigDecimal(t.get("amount").toString())
+                            transfer.activeStatus = t.get("activeStatus") as Boolean ?: true
+                            transfer.owner = principal.username
+                            transfer.transactionDate = java.sql.Date.valueOf((String) t.get("transactionDate"))
+                            data.createTransfer = transferService.transferInsert(transfer)
+                        } else if (query.contains("createPayment")) {
+                            Map p = (Map) variables.get("payment") ?: [:]
+                            Payment payment = new Payment()
+                            payment.sourceAccount = (String) p.get("sourceAccount")
+                            payment.destinationAccount = (String) p.get("destinationAccount")
+                            payment.amount = new BigDecimal(p.get("amount").toString())
+                            payment.activeStatus = p.get("activeStatus") as Boolean ?: true
+                            payment.owner = principal.username
+                            payment.transactionDate = java.sql.Date.valueOf((String) p.get("transactionDate"))
+                            data.createPayment = paymentService.paymentInsert(payment)
+                        } else if (query.contains("deletePayment")) {
+                            Long id = Long.parseLong(variables.get("id").toString())
+                            data.deletePayment = paymentService.paymentDelete(id)
+                        } else if (query.contains("updatePayment")) {
+                            Long id = Long.parseLong(variables.get("id").toString())
+                            Map p = (Map) variables.get("payment") ?: [:]
+                            Payment payment = new Payment()
+                            payment.paymentId = id
+                            payment.sourceAccount = (String) p.get("sourceAccount")
+                            payment.destinationAccount = (String) p.get("destinationAccount")
+                            payment.amount = new BigDecimal(p.get("amount").toString())
+                            payment.activeStatus = p.get("activeStatus") as Boolean ?: true
+                            payment.transactionDate = java.sql.Date.valueOf((String) p.get("transactionDate"))
+                            data.updatePayment = paymentService.paymentUpdate(payment)
+                        }
+                    } else {
+                        if (query.contains("transfers")) {
+                            data.transfers = transferService.transfers()
+                        }
+                        if (query.contains("accounts")) {
+                            data.accounts = accountService.accounts()
+                        }
+                        if (query.contains("payments")) {
+                            data.payments = paymentService.payments()
+                        }
+                    }
+                    render(objectMapper.writeValueAsString([data: data]))
+                } catch (Exception e) {
+                    java.util.logging.Logger.getLogger("GraphQL").severe("graphql error: ${e.message}")
+                    render(objectMapper.writeValueAsString([errors: [[message: e.message]]]))
+                }
+            }
         }
 
         } // end prefix('api')
@@ -1799,8 +1863,67 @@ ratpack {
             }
         }
 
-        post('graphql') {
-            render('[]')
+        post('graphql') { Context context, TransferService transferService, AccountService accountService, PaymentService paymentService, ObjectMapper objectMapper, AuthenticatedUser principal ->
+            context.request.body.then {
+                try {
+                    Map body = objectMapper.readValue(it.text, Map)
+                    String query = (String) body.get("query") ?: ""
+                    Map variables = (Map) body.get("variables") ?: [:]
+                    Map data = [:]
+
+                    if (query.trim().startsWith("mutation")) {
+                        if (query.contains("createTransfer")) {
+                            Map t = (Map) variables.get("transfer") ?: [:]
+                            Transfer transfer = new Transfer()
+                            transfer.sourceAccount = (String) t.get("sourceAccount")
+                            transfer.destinationAccount = (String) t.get("destinationAccount")
+                            transfer.amount = new BigDecimal(t.get("amount").toString())
+                            transfer.activeStatus = t.get("activeStatus") as Boolean ?: true
+                            transfer.owner = principal.username
+                            transfer.transactionDate = java.sql.Date.valueOf((String) t.get("transactionDate"))
+                            data.createTransfer = transferService.transferInsert(transfer)
+                        } else if (query.contains("createPayment")) {
+                            Map p = (Map) variables.get("payment") ?: [:]
+                            Payment payment = new Payment()
+                            payment.sourceAccount = (String) p.get("sourceAccount")
+                            payment.destinationAccount = (String) p.get("destinationAccount")
+                            payment.amount = new BigDecimal(p.get("amount").toString())
+                            payment.activeStatus = p.get("activeStatus") as Boolean ?: true
+                            payment.owner = principal.username
+                            payment.transactionDate = java.sql.Date.valueOf((String) p.get("transactionDate"))
+                            data.createPayment = paymentService.paymentInsert(payment)
+                        } else if (query.contains("deletePayment")) {
+                            Long id = Long.parseLong(variables.get("id").toString())
+                            data.deletePayment = paymentService.paymentDelete(id)
+                        } else if (query.contains("updatePayment")) {
+                            Long id = Long.parseLong(variables.get("id").toString())
+                            Map p = (Map) variables.get("payment") ?: [:]
+                            Payment payment = new Payment()
+                            payment.paymentId = id
+                            payment.sourceAccount = (String) p.get("sourceAccount")
+                            payment.destinationAccount = (String) p.get("destinationAccount")
+                            payment.amount = new BigDecimal(p.get("amount").toString())
+                            payment.activeStatus = p.get("activeStatus") as Boolean ?: true
+                            payment.transactionDate = java.sql.Date.valueOf((String) p.get("transactionDate"))
+                            data.updatePayment = paymentService.paymentUpdate(payment)
+                        }
+                    } else {
+                        if (query.contains("transfers")) {
+                            data.transfers = transferService.transfers()
+                        }
+                        if (query.contains("accounts")) {
+                            data.accounts = accountService.accounts()
+                        }
+                        if (query.contains("payments")) {
+                            data.payments = paymentService.payments()
+                        }
+                    }
+                    render(objectMapper.writeValueAsString([data: data]))
+                } catch (Exception e) {
+                    java.util.logging.Logger.getLogger("GraphQL").severe("graphql error: ${e.message}")
+                    render(objectMapper.writeValueAsString([errors: [[message: e.message]]]))
+                }
+            }
         }
 
         // ===== STATIC FILES =====

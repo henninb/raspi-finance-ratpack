@@ -66,4 +66,12 @@ class TransferRepository {
                 .execute()
         return true
     }
+
+    boolean existsByTransactionGuid(String guid) {
+        return dslContext.fetchCount(
+            dslContext.selectFrom(T_TRANSFER)
+                .where(T_TRANSFER.GUID_SOURCE.eq(guid)
+                    .or(T_TRANSFER.GUID_DESTINATION.eq(guid)))
+        ) > 0
+    }
 }

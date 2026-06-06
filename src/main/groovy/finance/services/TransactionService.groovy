@@ -8,7 +8,9 @@ import finance.domain.Transaction
 import finance.repositories.AccountRepository
 import finance.repositories.CategoryRepository
 import finance.repositories.DescriptionRepository
+import finance.repositories.PaymentRepository
 import finance.repositories.TransactionRepository
+import finance.repositories.TransferRepository
 import groovy.transform.CompileStatic
 import groovy.util.logging.Log
 import ratpack.core.service.Service
@@ -26,13 +28,17 @@ class TransactionService implements Service {
     private AccountRepository accountRepository
     private CategoryRepository categoryRepository
     private DescriptionRepository descriptionRepository
+    private PaymentRepository paymentRepository
+    private TransferRepository transferRepository
 
     @Inject
-    TransactionService(TransactionRepository transactionRepository, AccountRepository accountRepository, CategoryRepository categoryRepository, DescriptionRepository descriptionRepository) {
+    TransactionService(TransactionRepository transactionRepository, AccountRepository accountRepository, CategoryRepository categoryRepository, DescriptionRepository descriptionRepository, PaymentRepository paymentRepository, TransferRepository transferRepository) {
         this.transactionRepository = transactionRepository
         this.accountRepository = accountRepository
         this.categoryRepository = categoryRepository
         this.descriptionRepository = descriptionRepository
+        this.paymentRepository = paymentRepository
+        this.transferRepository = transferRepository
     }
 
     List<Transaction> transactionsAll() {
@@ -57,10 +63,16 @@ class TransactionService implements Service {
 
     boolean deleteTransaction(String guid) {
         Transaction transaction = transactionRepository.transaction(guid)
-        if (transaction) {
-            return transactionRepository.transactionDelete(guid)
+        if (!transaction) {
+            return false
         }
-        return false
+        if (paymentRepository.existsByTransactionGuid(guid)) {
+            throw new RuntimeException("Cannot delete transaction ${guid} because it is referenced by a payment. Please delete the related payment first.")
+        }
+        if (transferRepository.existsByTransactionGuid(guid)) {
+            throw new RuntimeException("Cannot delete transaction ${guid} because it is referenced by a transfer. Please delete the related transfer first.")
+        }
+        return transactionRepository.transactionDelete(guid)
     }
 
     Transaction transactionInsert(Transaction transaction) {
