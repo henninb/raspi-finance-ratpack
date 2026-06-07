@@ -3,14 +3,14 @@ package finance.repositories
 import com.google.inject.Inject
 import finance.domain.Summary
 import groovy.transform.CompileStatic
-import groovy.util.logging.Log
+import groovy.util.logging.Slf4j
 import org.jooq.impl.DSL
 import org.jooq.*;
 import javax.sql.DataSource
 
 import static org.jooq.generated.Tables.T_TRANSACTION
 
-@Log
+@Slf4j
 class SummaryRepository {
     private final DSLContext dslContext
 

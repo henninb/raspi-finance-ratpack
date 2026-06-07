@@ -3,13 +3,13 @@ package finance.services
 import finance.domain.Category
 import finance.repositories.CategoryRepository
 import groovy.transform.CompileStatic
-import groovy.util.logging.Log
+import groovy.util.logging.Slf4j
 import ratpack.core.service.Service
 
 import javax.inject.Inject
 import java.sql.Timestamp
 
-@Log
+@Slf4j
 @CompileStatic
 class CategoryService implements Service {
 

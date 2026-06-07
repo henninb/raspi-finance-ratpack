@@ -2,7 +2,7 @@ package finance.repositories
 
 import com.google.inject.Inject
 import finance.domain.PendingTransaction
-import groovy.util.logging.Log
+import groovy.util.logging.Slf4j
 import org.jooq.DSLContext
 import org.jooq.SQLDialect
 import org.jooq.impl.DSL
@@ -11,7 +11,7 @@ import javax.sql.DataSource
 
 import static org.jooq.generated.Tables.T_PENDING_TRANSACTION
 
-@Log
+@Slf4j
 class PendingTransactionRepository {
     private final DSLContext dslContext
 

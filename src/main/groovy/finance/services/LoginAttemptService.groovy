@@ -1,14 +1,14 @@
 package finance.services
 
 import groovy.transform.CompileStatic
-import groovy.util.logging.Log
+import groovy.util.logging.Slf4j
 import ratpack.core.service.Service
 
 import javax.inject.Inject
 import java.time.Instant
 import java.util.concurrent.ConcurrentHashMap
 
-@Log
+@Slf4j
 @CompileStatic
 class LoginAttemptService implements Service {
 
@@ -46,7 +46,7 @@ class LoginAttemptService implements Service {
 
     void recordFailure(String username) {
         if (attempts.size() >= MAX_TRACKED_USERNAMES) {
-            log.warning("SECURITY: LoginAttemptService at capacity — evicting oldest entries")
+            log.warn("SECURITY: LoginAttemptService at capacity — evicting oldest entries")
             evictOldestEntries()
         }
         String key = username.toLowerCase()
@@ -57,7 +57,7 @@ class LoginAttemptService implements Service {
             if (record.lockedUntil != null) {
                 lockedUntil = record.lockedUntil
             } else if (newCount >= MAX_ATTEMPTS) {
-                log.warning("SECURITY: account locked after ${newCount} failed attempts: ${key}")
+                log.warn("SECURITY: account locked after ${newCount} failed attempts: ${key}")
                 lockedUntil = Instant.now().plusSeconds(LOCKOUT_DURATION_SECONDS)
             } else {
                 lockedUntil = null

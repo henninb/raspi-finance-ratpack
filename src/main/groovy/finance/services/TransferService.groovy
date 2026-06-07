@@ -9,14 +9,14 @@ import finance.domain.Transfer
 import finance.repositories.AccountRepository
 import finance.repositories.TransferRepository
 import groovy.transform.CompileStatic
-import groovy.util.logging.Log
+import groovy.util.logging.Slf4j
 import ratpack.core.service.Service
 
 import javax.inject.Inject
 import java.sql.Date
 import java.sql.Timestamp
 
-@Log
+@Slf4j
 @CompileStatic
 class TransferService implements Service {
 

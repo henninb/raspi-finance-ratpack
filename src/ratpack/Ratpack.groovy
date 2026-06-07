@@ -1,3 +1,4 @@
+import org.slf4j.bridge.SLF4JBridgeHandler
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.SerializationFeature
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
@@ -45,6 +46,9 @@ import ratpack.hikari.HikariModule
 import ratpack.core.server.ServerConfigBuilder
 
 import static ratpack.groovy.Groovy.ratpack
+
+SLF4JBridgeHandler.removeHandlersForRootLogger()
+SLF4JBridgeHandler.install()
 
 // Load config.yml before server initialisation so SSL paths are available
 Map<String, Object> appCfg = new Yaml().load(

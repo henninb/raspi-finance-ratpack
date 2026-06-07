@@ -2,7 +2,7 @@ package finance.repositories
 
 import com.google.inject.Inject
 import finance.domain.User
-import groovy.util.logging.Log
+import groovy.util.logging.Slf4j
 import org.jooq.DSLContext
 import org.jooq.SQLDialect
 import org.jooq.impl.DSL
@@ -12,7 +12,7 @@ import java.time.LocalDateTime
 
 import static org.jooq.generated.Tables.T_USER
 
-@Log
+@Slf4j
 class UserRepository {
     private final DSLContext dslContext
 

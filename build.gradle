@@ -10,6 +10,30 @@ plugins {
     id "com.gradleup.shadow" version "${shadowVersion}"
     id "com.github.ben-manes.versions" version "${gradleVersionsPlugin}"
     id 'nu.studer.jooq' version "${jooqPluginVersion}"
+    id 'codenarc'
+}
+
+codenarc {
+    toolVersion = "${codenarcVersion}"
+    ignoreFailures = true
+}
+
+tasks.withType(CodeNarc).configureEach {
+    // The Groovy shell used to evaluate the DSL ruleset cannot read Java 21 class
+    // files; clearing compilationClasspath prevents it from loading project classes.
+    compilationClasspath = files()
+    reports {
+        xml.required = true
+        html.required = true
+    }
+}
+
+codenarcMain {
+    configFile = file('config/codenarc/codenarc-main.groovy')
+}
+
+codenarcTest {
+    configFile = file('config/codenarc/codenarc-test.groovy')
 }
 
 repositories {
@@ -17,7 +41,7 @@ repositories {
 }
 
 test {
-    failOnNoDiscoveredTests = false
+    useJUnitPlatform()
 }
 
 dependencies {
@@ -32,6 +56,7 @@ dependencies {
     implementation ratpack.dependency("groovy")
 
     runtimeOnly("ch.qos.logback:logback-classic:${logbackVersion}")
+    implementation("org.slf4j:jul-to-slf4j:1.7.36")
 
     //Groovy 3.0 - using codehaus namespace to match Ratpack 2.0 requirements
     implementation("org.codehaus.groovy:groovy:${groovyVersion}")
@@ -52,6 +77,9 @@ dependencies {
     implementation("org.mindrot:jbcrypt:${jbcryptVersion}")
 
     testImplementation("org.spockframework:spock-core:2.3-groovy-3.0")
+    testImplementation("net.bytebuddy:byte-buddy:1.14.18")
+    testImplementation("org.objenesis:objenesis:3.3")
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 
     //graphql
     //implementation "com.github.grooviter:gql-ratpack:0.3.0"

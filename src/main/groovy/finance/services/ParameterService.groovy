@@ -3,12 +3,12 @@ package finance.services
 import finance.domain.Parameter
 import finance.repositories.ParameterRepository
 import groovy.transform.CompileStatic
-import groovy.util.logging.Log
+import groovy.util.logging.Slf4j
 import ratpack.core.service.Service
 
 import javax.inject.Inject
 
-@Log
+@Slf4j
 @CompileStatic
 class ParameterService implements Service {
 

@@ -1,7 +1,7 @@
 package finance.services
 
 import groovy.transform.CompileStatic
-import groovy.util.logging.Log
+import groovy.util.logging.Slf4j
 import ratpack.core.service.Service
 import ratpack.core.service.StartEvent
 import ratpack.core.service.StopEvent
@@ -14,7 +14,7 @@ import java.util.concurrent.Executors
 import java.util.concurrent.ScheduledExecutorService
 import java.util.concurrent.TimeUnit
 
-@Log
+@Slf4j
 @CompileStatic
 class TokenBlacklistService implements Service {
 

@@ -2,7 +2,7 @@ package finance.repositories
 
 import com.google.inject.Inject
 import finance.domain.MedicalExpense
-import groovy.util.logging.Log
+import groovy.util.logging.Slf4j
 import org.jooq.DSLContext
 import org.jooq.SQLDialect
 import org.jooq.impl.DSL
@@ -14,7 +14,7 @@ import java.time.LocalDate
 import static org.jooq.generated.Tables.T_MEDICAL_EXPENSE
 import static org.jooq.generated.Tables.T_TRANSACTION
 
-@Log
+@Slf4j
 class MedicalExpenseRepository {
     private final DSLContext dslContext
 

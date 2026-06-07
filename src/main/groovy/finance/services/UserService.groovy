@@ -3,14 +3,14 @@ package finance.services
 import finance.domain.User
 import finance.repositories.UserRepository
 import groovy.transform.CompileStatic
-import groovy.util.logging.Log
+import groovy.util.logging.Slf4j
 import org.mindrot.jbcrypt.BCrypt
 import ratpack.core.service.Service
 
 import javax.inject.Inject
 import java.sql.Timestamp
 
-@Log
+@Slf4j
 @CompileStatic
 class UserService implements Service {
 

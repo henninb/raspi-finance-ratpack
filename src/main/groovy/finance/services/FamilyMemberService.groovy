@@ -3,13 +3,13 @@ package finance.services
 import finance.domain.FamilyMember
 import finance.repositories.FamilyMemberRepository
 import groovy.transform.CompileStatic
-import groovy.util.logging.Log
+import groovy.util.logging.Slf4j
 import ratpack.core.service.Service
 
 import javax.inject.Inject
 import java.sql.Timestamp
 
-@Log
+@Slf4j
 @CompileStatic
 class FamilyMemberService implements Service {
 

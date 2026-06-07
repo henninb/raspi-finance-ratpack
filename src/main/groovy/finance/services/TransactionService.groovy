@@ -12,7 +12,7 @@ import finance.repositories.PaymentRepository
 import finance.repositories.TransactionRepository
 import finance.repositories.TransferRepository
 import groovy.transform.CompileStatic
-import groovy.util.logging.Log
+import groovy.util.logging.Slf4j
 import ratpack.core.service.Service
 
 import javax.inject.Inject
@@ -20,7 +20,7 @@ import java.sql.Timestamp
 import java.time.LocalDate
 import java.time.temporal.ChronoUnit
 
-@Log
+@Slf4j
 @CompileStatic
 class TransactionService implements Service {
 
@@ -85,6 +85,9 @@ class TransactionService implements Service {
                     new Category(categoryName: transaction.category, owner: transaction.owner, activeStatus: true)
             )
         }
+        if (transaction.notes) {
+            transaction.notes = transaction.notes.toLowerCase()
+        }
         if (transaction.description) {
             transaction.description = transaction.description.toLowerCase()
             Description description = descriptionRepository.description(transaction.owner, transaction.description)
@@ -116,6 +119,9 @@ class TransactionService implements Service {
             if (!category) {
                 categoryRepository.categoryInsert(new Category(categoryName: transaction.category, owner: owner, activeStatus: true))
             }
+        }
+        if (transaction.notes) {
+            transaction.notes = transaction.notes.toLowerCase()
         }
         if (transaction.description) {
             transaction.description = transaction.description.toLowerCase()

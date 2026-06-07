@@ -3,13 +3,13 @@ package finance.services
 import finance.domain.PendingTransaction
 import finance.repositories.PendingTransactionRepository
 import groovy.transform.CompileStatic
-import groovy.util.logging.Log
+import groovy.util.logging.Slf4j
 import ratpack.core.service.Service
 
 import javax.inject.Inject
 import java.sql.Timestamp
 
-@Log
+@Slf4j
 @CompileStatic
 class PendingTransactionService implements Service {
 

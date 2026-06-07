@@ -3,14 +3,14 @@ package finance.services
 import finance.domain.Account
 import finance.repositories.AccountRepository
 import groovy.transform.CompileStatic
-import groovy.util.logging.Log
+import groovy.util.logging.Slf4j
 import ratpack.core.service.Service
 
 import javax.inject.Inject
 import java.math.RoundingMode
 import java.sql.Timestamp
 
-@Log
+@Slf4j
 @CompileStatic
 class AccountService implements Service {
 

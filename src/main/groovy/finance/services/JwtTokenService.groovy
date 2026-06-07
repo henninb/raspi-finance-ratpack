@@ -1,6 +1,6 @@
 package finance.services
 
-import groovy.util.logging.Log
+import groovy.util.logging.Slf4j
 import io.jsonwebtoken.Claims
 import io.jsonwebtoken.Jwts
 import io.jsonwebtoken.security.Keys
@@ -9,7 +9,7 @@ import ratpack.core.service.Service
 import javax.crypto.SecretKey
 import javax.inject.Inject
 
-@Log
+@Slf4j
 class JwtTokenService implements Service {
 
     static final String ISSUER = "raspi-finance-endpoint"
