@@ -2,6 +2,7 @@
   "database": {
     "username": "henninb",
     "password": "monday1",
-    "jdbcUrl": "jdbc:postgresql://postgresql.bhenning.com:5432/finance_db"
+    "jdbcUrl": "jdbc:postgresql://postgresql.bhenning.com:5432/finance_db",
+    "driverClassName": "org.postgresql.Driver"
   }
 }

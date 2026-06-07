@@ -145,6 +145,7 @@ shadowJar {
     archiveBaseName.set(rootProject.name)
     archiveClassifier.set('')
     archiveVersion.set('')
+    mergeServiceFiles()
 }
 
 tasks.named('distZip') { dependsOn shadowJar }
