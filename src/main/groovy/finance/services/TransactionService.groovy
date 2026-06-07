@@ -86,6 +86,7 @@ class TransactionService implements Service {
             )
         }
         if (transaction.description) {
+            transaction.description = transaction.description.toLowerCase()
             Description description = descriptionRepository.description(transaction.owner, transaction.description)
             if (!description) {
                 descriptionRepository.descriptionInsert(
@@ -117,6 +118,7 @@ class TransactionService implements Service {
             }
         }
         if (transaction.description) {
+            transaction.description = transaction.description.toLowerCase()
             Description description = descriptionRepository.description(owner, transaction.description)
             if (!description) {
                 descriptionRepository.descriptionInsert(new Description(descriptionName: transaction.description, owner: owner, activeStatus: true))
