@@ -1,0 +1,107 @@
+<ruleset xmlns="http://codenarc.org/ruleset/1.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://codenarc.org/ruleset/1.0 http://codenarc.org/ruleset-schema.xsd">
+    <description>Finance Ratpack test sources</description>
+
+    <ruleset-ref path="rulesets/basic.xml"/>
+
+    <ruleset-ref path="rulesets/braces.xml">
+        <exclude name="IfStatementBraces"/>
+    </ruleset-ref>
+
+    <ruleset-ref path="rulesets/concurrency.xml"/>
+
+    <ruleset-ref path="rulesets/convention.xml">
+        <exclude name="NoDef"/>
+    </ruleset-ref>
+
+    <ruleset-ref path="rulesets/design.xml">
+        <exclude name="BuilderMethodWithSideEffects"/>
+        <exclude name="PrivateFieldCouldBeFinal"/>
+        <exclude name="Instanceof"/>
+        <exclude name="AbstractClassWithoutAbstractMethod"/>
+    </ruleset-ref>
+
+    <ruleset-ref path="rulesets/dry.xml">
+        <exclude name="DuplicateNumberLiteral"/>
+        <exclude name="DuplicateListLiteral"/>
+        <exclude name="DuplicateMapLiteral"/>
+        <exclude name="DuplicateStringLiteral"/>
+    </ruleset-ref>
+
+    <ruleset-ref path="rulesets/exceptions.xml">
+        <exclude name="ThrowRuntimeException"/>
+        <exclude name="ThrowException"/>
+    </ruleset-ref>
+
+    <ruleset-ref path="rulesets/formatting.xml">
+        <exclude name="ClassJavadoc"/>
+        <exclude name="ConsecutiveBlankLines"/>
+        <exclude name="LineLength"/>
+        <exclude name="SpaceAfterOpeningBrace"/>
+        <exclude name="SpaceBeforeClosingBrace"/>
+    </ruleset-ref>
+
+    <ruleset-ref path="rulesets/groovyism.xml">
+        <exclude name="ClosureAsLastMethodParameter"/>
+    </ruleset-ref>
+
+    <ruleset-ref path="rulesets/imports.xml">
+        <exclude name="NoWildcardImports"/>
+        <exclude name="MisorderedStaticImports"/>
+    </ruleset-ref>
+
+    <ruleset-ref path="rulesets/junit.xml">
+        <exclude name="JUnitPublicProperty"/>
+        <exclude name="JUnitTestMethodWithoutAssert"/>
+    </ruleset-ref>
+
+    <ruleset-ref path="rulesets/logging.xml">
+        <exclude name="Println"/>
+    </ruleset-ref>
+
+    <ruleset-ref path="rulesets/naming.xml">
+        <exclude name="FactoryMethodName"/>
+        <exclude name="MethodName"/>
+    </ruleset-ref>
+
+    <ruleset-ref path="rulesets/security.xml">
+        <exclude name="FileCreateTempFile"/>
+        <exclude name="InsecureRandom"/>
+        <exclude name="JavaIoPackageAccess"/>
+    </ruleset-ref>
+
+    <ruleset-ref path="rulesets/serialization.xml">
+        <exclude name="SerialVersionUID"/>
+        <exclude name="SerializableClassMustDefineSerialVersionUID"/>
+    </ruleset-ref>
+
+    <ruleset-ref path="rulesets/size.xml">
+        <exclude name="CrapMetric"/>
+        <exclude name="AbcMetric"/>
+        <exclude name="CyclomaticComplexity"/>
+    </ruleset-ref>
+
+    <ruleset-ref path="rulesets/unnecessary.xml">
+        <exclude name="UnnecessaryReturnKeyword"/>
+        <exclude name="UnnecessaryGString"/>
+        <exclude name="UnnecessarySubstring"/>
+        <exclude name="UnnecessaryObjectReferences"/>
+    </ruleset-ref>
+
+    <ruleset-ref path="rulesets/unused.xml"/>
+
+    <!-- Custom rule configurations must come after all ruleset-ref elements -->
+    <rule class="org.codenarc.rule.formatting.LineLengthRule">
+        <property name="length" value="300"/>
+    </rule>
+    <rule class="org.codenarc.rule.formatting.SpaceAfterOpeningBraceRule">
+        <property name="ignoreEmptyBlock" value="true"/>
+    </rule>
+    <rule class="org.codenarc.rule.formatting.SpaceBeforeClosingBraceRule">
+        <property name="ignoreEmptyBlock" value="true"/>
+    </rule>
+    <rule class="org.codenarc.rule.imports.MisorderedStaticImportsRule">
+        <property name="comesBefore" value="false"/>
+    </rule>
+</ruleset>
