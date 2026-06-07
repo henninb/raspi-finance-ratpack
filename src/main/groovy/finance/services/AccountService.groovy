@@ -26,6 +26,8 @@ class AccountService implements Service {
     }
 
     List<Account> accountsRequiringPayment() {
+        accountRepository.updateTotalsForAllAccounts()
+        accountRepository.updateValidationDates()
         return accountRepository.accountsRequiringPayment()
     }
 
@@ -85,6 +87,10 @@ class AccountService implements Service {
         }
         accountRepository.accountActivate(accountNameOwner)
         return accountRepository.account(accountNameOwner)
+    }
+
+    boolean updateTotalsForAllAccounts() {
+        return accountRepository.updateTotalsForAllAccounts()
     }
 
     void updateValidationDatesForAllAccounts() {

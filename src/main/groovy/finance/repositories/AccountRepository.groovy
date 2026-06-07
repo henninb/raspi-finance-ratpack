@@ -97,6 +97,27 @@ class AccountRepository {
         return true
     }
 
+    boolean updateTotalsForAllAccounts() {
+        dslContext.execute("""
+            UPDATE t_account SET
+                cleared = x.cleared,
+                outstanding = x.outstanding,
+                future = x.future,
+                date_updated = now()
+            FROM (
+                SELECT account_name_owner,
+                    SUM(CASE WHEN transaction_state = 'cleared' THEN amount ELSE 0 END) AS cleared,
+                    SUM(CASE WHEN transaction_state = 'outstanding' THEN amount ELSE 0 END) AS outstanding,
+                    SUM(CASE WHEN transaction_state = 'future' THEN amount ELSE 0 END) AS future
+                FROM t_transaction
+                WHERE active_status = true
+                GROUP BY account_name_owner
+            ) x
+            WHERE t_account.account_name_owner = x.account_name_owner
+        """)
+        return true
+    }
+
     void updateValidationDates() {
         dslContext.execute("""
             UPDATE t_account a
@@ -110,6 +131,22 @@ class AccountRepository {
             ) sub
             WHERE a.account_id = sub.account_id
         """)
+    }
+
+    void updateValidationDateForAccount(Long accountId) {
+        dslContext.execute("""
+            UPDATE t_account a
+            SET validation_date = sub.max_validation_date,
+                date_updated = now()
+            FROM (
+                SELECT va.account_id, MAX(va.validation_date) AS max_validation_date
+                FROM t_validation_amount va
+                WHERE va.active_status = TRUE
+                GROUP BY va.account_id
+            ) sub
+            WHERE a.account_id = sub.account_id
+            AND a.account_id = ?
+        """, accountId)
     }
 
     BigDecimal sumTransactionsByState(String transactionState) {

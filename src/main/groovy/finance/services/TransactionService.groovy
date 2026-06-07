@@ -72,7 +72,9 @@ class TransactionService implements Service {
         if (transferRepository.existsByTransactionGuid(guid)) {
             throw new RuntimeException("Cannot delete transaction ${guid} because it is referenced by a transfer. Please delete the related transfer first.")
         }
-        return transactionRepository.transactionDelete(guid)
+        boolean deleted = transactionRepository.transactionDelete(guid)
+        accountRepository.updateTotalsForAllAccounts()
+        return deleted
     }
 
     Transaction transactionInsert(Transaction transaction) {
@@ -102,6 +104,7 @@ class TransactionService implements Service {
             transaction.accountType = account.accountType
             transaction.accountId = account.accountId
             transactionRepository.transactionInsert(transaction)
+            accountRepository.updateTotalsForAllAccounts()
             log.info("inserted transaction ${transaction.guid}")
             return transaction
         }
@@ -130,11 +133,15 @@ class TransactionService implements Service {
                 descriptionRepository.descriptionInsert(new Description(descriptionName: transaction.description, owner: owner, activeStatus: true))
             }
         }
-        return transactionRepository.transactionUpdate(transaction)
+        boolean updated = transactionRepository.transactionUpdate(transaction)
+        accountRepository.updateTotalsForAllAccounts()
+        return updated
     }
 
     boolean transactionStateUpdate(String guid, String transactionState) {
-        return transactionRepository.transactionStateUpdate(guid, transactionState)
+        boolean result = transactionRepository.transactionStateUpdate(guid, transactionState)
+        accountRepository.updateTotalsForAllAccounts()
+        return result
     }
 
     List<Transaction> transactionsByDateRange(LocalDate startDate, LocalDate endDate) {

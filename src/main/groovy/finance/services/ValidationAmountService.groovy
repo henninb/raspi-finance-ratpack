@@ -53,6 +53,11 @@ class ValidationAmountService implements Service {
         validationAmount.dateUpdated = new Timestamp(System.currentTimeMillis())
         validationAmount.dateAdded = new Timestamp(System.currentTimeMillis())
         validationAmountRepository.validationAmountInsert(validationAmount)
+        try {
+            accountRepository.updateValidationDateForAccount(validationAmount.accountId)
+        } catch (Exception e) {
+            log.warn("Failed to refresh account.validation_date for accountId=${validationAmount.accountId}: ${e.message}")
+        }
         return validationAmount
     }
 
@@ -62,7 +67,13 @@ class ValidationAmountService implements Service {
             throw new RuntimeException("validation amount not found: ${validationAmount.validationId}")
         }
         validationAmountRepository.validationAmountUpdate(validationAmount)
-        return validationAmountRepository.validationAmount(validationAmount.validationId)
+        ValidationAmount updated = validationAmountRepository.validationAmount(validationAmount.validationId)
+        try {
+            accountRepository.updateValidationDateForAccount(updated.accountId)
+        } catch (Exception e) {
+            log.warn("Failed to refresh account.validation_date for accountId=${updated.accountId}: ${e.message}")
+        }
+        return updated
     }
 
     boolean validationAmountDelete(Long validationId) {

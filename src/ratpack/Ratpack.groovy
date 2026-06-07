@@ -40,6 +40,8 @@ import finance.services.TransactionService
 import finance.services.TransferService
 import finance.services.UserService
 import finance.services.ValidationAmountService
+import ratpack.core.error.ClientErrorHandler
+import ratpack.core.error.ServerErrorHandler
 import ratpack.core.handling.Context
 import ratpack.exec.registry.Registry
 import ratpack.hikari.HikariModule
@@ -92,6 +94,18 @@ ratpack {
         bindInstance(new ObjectMapper()
             .registerModule(new JavaTimeModule())
             .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS))
+
+        bindInstance(ClientErrorHandler, { Context ctx, int statusCode ->
+            ctx.response.contentType('application/json')
+            ctx.response.status(statusCode)
+            ctx.render('{"error":"' + statusCode + '"}')
+        } as ClientErrorHandler)
+
+        bindInstance(ServerErrorHandler, { Context ctx, Throwable t ->
+            ctx.response.contentType('application/json')
+            ctx.response.status(500)
+            ctx.render('{"error":"' + t.message?.replace('"', "'") + '"}')
+        } as ServerErrorHandler)
     }
 
     handlers {
@@ -306,19 +320,6 @@ ratpack {
             }
         }
 
-        get('account/:accountNameOwner') { Context context, AccountService accountService, ObjectMapper objectMapper ->
-            context.request.getBody().then {
-                String accountNameOwner = pathTokens["accountNameOwner"]
-                Account account = accountService.account(accountNameOwner)
-                if (account) {
-                    render(objectMapper.writeValueAsString(account))
-                } else {
-                    context.response.status(404)
-                    render('{"error":"account not found"}')
-                }
-            }
-        }
-
         post('account') { Context context, AccountService accountService, ObjectMapper objectMapper ->
             context.request.body.then {
                 try {
@@ -373,39 +374,52 @@ ratpack {
             }
         }
 
-        put('account/:accountNameOwner') { Context context, AccountService accountService, ObjectMapper objectMapper ->
-            context.request.body.then {
-                String accountNameOwner = pathTokens["accountNameOwner"]
-                try {
-                    Account account = objectMapper.readValue(it.text, Account)
-                    account.accountNameOwner = accountNameOwner
-                    Account result = accountService.accountUpdate(account)
-                    render(objectMapper.writeValueAsString(result))
-                } catch (RuntimeException e) {
-                    context.response.status(404)
-                    render('{"error":"' + e.message + '"}')
-                }
-            }
-        }
-
-        delete('account/:accountNameOwner') { Context context, AccountService accountService ->
-            context.request.getBody().then {
-                String accountNameOwner = pathTokens["accountNameOwner"]
-                boolean deleted = accountService.accountDelete(accountNameOwner)
-                if (deleted) {
-                    render('{}')
-                } else {
-                    context.response.status(404)
-                    render('{"error":"account not found"}')
-                }
-            }
-        }
-
         get('account/validation/refresh') { Context context, AccountService accountService ->
             context.request.getBody().then {
                 accountService.updateValidationDatesForAllAccounts()
                 context.response.status(204)
                 render('')
+            }
+        }
+
+        path('account/:accountNameOwner') { Context context, AccountService accountService, ObjectMapper objectMapper ->
+            String accountNameOwner = context.pathTokens["accountNameOwner"]
+            byMethod {
+                get {
+                    context.request.getBody().then {
+                        Account account = accountService.account(accountNameOwner)
+                        if (account) {
+                            context.render(objectMapper.writeValueAsString(account))
+                        } else {
+                            context.response.status(404)
+                            context.render('{"error":"account not found"}')
+                        }
+                    }
+                }
+                put {
+                    context.request.body.then {
+                        try {
+                            Account account = objectMapper.readValue(it.text, Account)
+                            account.accountNameOwner = accountNameOwner
+                            Account result = accountService.accountUpdate(account)
+                            context.render(objectMapper.writeValueAsString(result))
+                        } catch (RuntimeException e) {
+                            context.response.status(404)
+                            context.render('{"error":"' + e.message + '"}')
+                        }
+                    }
+                }
+                delete {
+                    context.request.getBody().then {
+                        boolean deleted = accountService.accountDelete(accountNameOwner)
+                        if (deleted) {
+                            context.render('{}')
+                        } else {
+                            context.response.status(404)
+                            context.render('{"error":"account not found"}')
+                        }
+                    }
+                }
             }
         }
 
@@ -670,19 +684,6 @@ ratpack {
             }
         }
 
-        get('category/:categoryName') { Context context, CategoryService categoryService, ObjectMapper objectMapper ->
-            context.request.getBody().then {
-                String categoryName = pathTokens["categoryName"]
-                Category category = categoryService.category(categoryName)
-                if (category) {
-                    render(objectMapper.writeValueAsString(category))
-                } else {
-                    context.response.status(404)
-                    render('{"error":"category not found"}')
-                }
-            }
-        }
-
         post('category') { Context context, CategoryService categoryService, ObjectMapper objectMapper ->
             context.request.body.then {
                 Category category = objectMapper.readValue(it.text, Category)
@@ -706,30 +707,43 @@ ratpack {
             }
         }
 
-        put('category/:categoryName') { Context context, CategoryService categoryService, ObjectMapper objectMapper ->
-            context.request.body.then {
-                String categoryName = pathTokens["categoryName"]
-                try {
-                    Category category = objectMapper.readValue(it.text, Category)
-                    category.categoryName = categoryName
-                    Category result = categoryService.categoryUpdate(category)
-                    render(objectMapper.writeValueAsString(result))
-                } catch (RuntimeException e) {
-                    context.response.status(404)
-                    render('{"error":"' + e.message + '"}')
+        path('category/:categoryName') { Context context, CategoryService categoryService, ObjectMapper objectMapper ->
+            String categoryName = context.pathTokens["categoryName"]
+            byMethod {
+                get {
+                    context.request.getBody().then {
+                        Category category = categoryService.category(categoryName)
+                        if (category) {
+                            context.render(objectMapper.writeValueAsString(category))
+                        } else {
+                            context.response.status(404)
+                            context.render('{"error":"category not found"}')
+                        }
+                    }
                 }
-            }
-        }
-
-        delete('category/:categoryName') { Context context, CategoryService categoryService ->
-            context.request.getBody().then {
-                String categoryName = pathTokens["categoryName"]
-                boolean deleted = categoryService.categoryDelete(categoryName)
-                if (deleted) {
-                    render('{}')
-                } else {
-                    context.response.status(404)
-                    render('{"error":"category not found"}')
+                put {
+                    context.request.body.then {
+                        try {
+                            Category category = objectMapper.readValue(it.text, Category)
+                            category.categoryName = categoryName
+                            Category result = categoryService.categoryUpdate(category)
+                            context.render(objectMapper.writeValueAsString(result))
+                        } catch (RuntimeException e) {
+                            context.response.status(404)
+                            context.render('{"error":"' + e.message + '"}')
+                        }
+                    }
+                }
+                delete {
+                    context.request.getBody().then {
+                        boolean deleted = categoryService.categoryDelete(categoryName)
+                        if (deleted) {
+                            context.render('{}')
+                        } else {
+                            context.response.status(404)
+                            context.render('{"error":"category not found"}')
+                        }
+                    }
                 }
             }
         }
@@ -745,19 +759,6 @@ ratpack {
         get('description/active') { Context context, DescriptionService descriptionService, ObjectMapper objectMapper ->
             context.request.getBody().then {
                 render(objectMapper.writeValueAsString(descriptionService.descriptions()))
-            }
-        }
-
-        get('description/:descriptionName') { Context context, DescriptionService descriptionService, ObjectMapper objectMapper ->
-            context.request.getBody().then {
-                String descriptionName = pathTokens["descriptionName"]
-                Description description = descriptionService.description(descriptionName)
-                if (description) {
-                    render(objectMapper.writeValueAsString(description))
-                } else {
-                    context.response.status(404)
-                    render('{"error":"description not found"}')
-                }
             }
         }
 
@@ -788,30 +789,43 @@ ratpack {
             }
         }
 
-        put('description/:descriptionName') { Context context, DescriptionService descriptionService, ObjectMapper objectMapper ->
-            context.request.body.then {
-                String descriptionName = pathTokens["descriptionName"]
-                try {
-                    Description description = objectMapper.readValue(it.text, Description)
-                    description.descriptionName = descriptionName
-                    Description result = descriptionService.descriptionUpdate(description)
-                    render(objectMapper.writeValueAsString(result))
-                } catch (RuntimeException e) {
-                    context.response.status(404)
-                    render('{"error":"' + e.message + '"}')
+        path('description/:descriptionName') { Context context, DescriptionService descriptionService, ObjectMapper objectMapper ->
+            String descriptionName = context.pathTokens["descriptionName"]
+            byMethod {
+                get {
+                    context.request.getBody().then {
+                        Description description = descriptionService.description(descriptionName)
+                        if (description) {
+                            context.render(objectMapper.writeValueAsString(description))
+                        } else {
+                            context.response.status(404)
+                            context.render('{"error":"description not found"}')
+                        }
+                    }
                 }
-            }
-        }
-
-        delete('description/:descriptionName') { Context context, DescriptionService descriptionService ->
-            context.request.getBody().then {
-                String descriptionName = pathTokens["descriptionName"]
-                boolean deleted = descriptionService.descriptionDelete(descriptionName)
-                if (deleted) {
-                    render('{}')
-                } else {
-                    context.response.status(404)
-                    render('{"error":"description not found"}')
+                put {
+                    context.request.body.then {
+                        try {
+                            Description description = objectMapper.readValue(it.text, Description)
+                            description.descriptionName = descriptionName
+                            Description result = descriptionService.descriptionUpdate(description)
+                            context.render(objectMapper.writeValueAsString(result))
+                        } catch (RuntimeException e) {
+                            context.response.status(404)
+                            context.render('{"error":"' + e.message + '"}')
+                        }
+                    }
+                }
+                delete {
+                    context.request.getBody().then {
+                        boolean deleted = descriptionService.descriptionDelete(descriptionName)
+                        if (deleted) {
+                            context.render('{}')
+                        } else {
+                            context.response.status(404)
+                            context.render('{"error":"description not found"}')
+                        }
+                    }
                 }
             }
         }
@@ -936,19 +950,6 @@ ratpack {
             }
         }
 
-        get('validation/amount/:validationId') { Context context, ValidationAmountService validationAmountService, ObjectMapper objectMapper ->
-            context.request.getBody().then {
-                Long validationId = Long.parseLong(pathTokens["validationId"])
-                ValidationAmount va = validationAmountService.validationAmountById(validationId)
-                if (va) {
-                    render(objectMapper.writeValueAsString(va))
-                } else {
-                    context.response.status(404)
-                    render('{"error":"validation amount not found"}')
-                }
-            }
-        }
-
         post('validation/amount/insert/:accountNameOwner') { Context context, ValidationAmountService validationAmountService, ObjectMapper objectMapper ->
             context.request.body.then {
                 String accountNameOwner = pathTokens["accountNameOwner"]
@@ -968,30 +969,43 @@ ratpack {
             }
         }
 
-        put('validation/amount/:validationId') { Context context, ValidationAmountService validationAmountService, ObjectMapper objectMapper ->
-            context.request.body.then {
-                Long validationId = Long.parseLong(pathTokens["validationId"])
-                try {
-                    ValidationAmount va = objectMapper.readValue(it.text, ValidationAmount)
-                    va.validationId = validationId
-                    ValidationAmount result = validationAmountService.validationAmountUpdate(va)
-                    render(objectMapper.writeValueAsString(result))
-                } catch (RuntimeException e) {
-                    context.response.status(404)
-                    render('{"error":"' + e.message + '"}')
+        path('validation/amount/:validationId') { Context context, ValidationAmountService validationAmountService, ObjectMapper objectMapper ->
+            Long validationId = Long.parseLong(context.pathTokens["validationId"])
+            byMethod {
+                get {
+                    context.request.getBody().then {
+                        ValidationAmount va = validationAmountService.validationAmountById(validationId)
+                        if (va) {
+                            context.render(objectMapper.writeValueAsString(va))
+                        } else {
+                            context.response.status(404)
+                            context.render('{"error":"validation amount not found"}')
+                        }
+                    }
                 }
-            }
-        }
-
-        delete('validation/amount/:validationId') { Context context, ValidationAmountService validationAmountService ->
-            context.request.getBody().then {
-                Long validationId = Long.parseLong(pathTokens["validationId"])
-                boolean deleted = validationAmountService.validationAmountDelete(validationId)
-                if (deleted) {
-                    render('{}')
-                } else {
-                    context.response.status(404)
-                    render('{"error":"validation amount not found"}')
+                put {
+                    context.request.body.then {
+                        try {
+                            ValidationAmount va = objectMapper.readValue(it.text, ValidationAmount)
+                            va.validationId = validationId
+                            ValidationAmount result = validationAmountService.validationAmountUpdate(va)
+                            context.render(objectMapper.writeValueAsString(result))
+                        } catch (RuntimeException e) {
+                            context.response.status(404)
+                            context.render('{"error":"' + e.message + '"}')
+                        }
+                    }
+                }
+                delete {
+                    context.request.getBody().then {
+                        boolean deleted = validationAmountService.validationAmountDelete(validationId)
+                        if (deleted) {
+                            context.render('{}')
+                        } else {
+                            context.response.status(404)
+                            context.render('{"error":"validation amount not found"}')
+                        }
+                    }
                 }
             }
         }
@@ -1012,19 +1026,6 @@ ratpack {
             }
         }
 
-        get('parameter/:parameterName') { Context context, ParameterService parameterService, ObjectMapper objectMapper ->
-            context.request.getBody().then {
-                String parameterName = pathTokens["parameterName"]
-                Parameter parameter = parameterService.parameter(parameterName)
-                if (parameter) {
-                    render(objectMapper.writeValueAsString(parameter))
-                } else {
-                    context.response.status(404)
-                    render('{"error":"parameter not found"}')
-                }
-            }
-        }
-
         post('parameter') { Context context, ParameterService parameterService, ObjectMapper objectMapper ->
             context.request.body.then {
                 try {
@@ -1039,30 +1040,43 @@ ratpack {
             }
         }
 
-        put('parameter/:parameterName') { Context context, ParameterService parameterService, ObjectMapper objectMapper ->
-            context.request.body.then {
-                String parameterName = pathTokens["parameterName"]
-                try {
-                    Parameter parameter = objectMapper.readValue(it.text, Parameter)
-                    parameter.parameterName = parameterName
-                    Parameter result = parameterService.parameterUpdate(parameter)
-                    render(objectMapper.writeValueAsString(result))
-                } catch (RuntimeException e) {
-                    context.response.status(404)
-                    render('{"error":"' + e.message + '"}')
+        path('parameter/:parameterName') { Context context, ParameterService parameterService, ObjectMapper objectMapper ->
+            String parameterName = context.pathTokens["parameterName"]
+            byMethod {
+                get {
+                    context.request.getBody().then {
+                        Parameter parameter = parameterService.parameter(parameterName)
+                        if (parameter) {
+                            context.render(objectMapper.writeValueAsString(parameter))
+                        } else {
+                            context.response.status(404)
+                            context.render('{"error":"parameter not found"}')
+                        }
+                    }
                 }
-            }
-        }
-
-        delete('parameter/:parameterName') { Context context, ParameterService parameterService ->
-            context.request.getBody().then {
-                String parameterName = pathTokens["parameterName"]
-                boolean deleted = parameterService.parameterDelete(parameterName)
-                if (deleted) {
-                    render('{}')
-                } else {
-                    context.response.status(404)
-                    render('{"error":"parameter not found"}')
+                put {
+                    context.request.body.then {
+                        try {
+                            Parameter parameter = objectMapper.readValue(it.text, Parameter)
+                            parameter.parameterName = parameterName
+                            Parameter result = parameterService.parameterUpdate(parameter)
+                            context.render(objectMapper.writeValueAsString(result))
+                        } catch (RuntimeException e) {
+                            context.response.status(404)
+                            context.render('{"error":"' + e.message + '"}')
+                        }
+                    }
+                }
+                delete {
+                    context.request.getBody().then {
+                        boolean deleted = parameterService.parameterDelete(parameterName)
+                        if (deleted) {
+                            context.render('{}')
+                        } else {
+                            context.response.status(404)
+                            context.render('{"error":"parameter not found"}')
+                        }
+                    }
                 }
             }
         }
@@ -1075,19 +1089,6 @@ ratpack {
             }
         }
 
-        get('transfer/:transferId') { Context context, TransferService transferService, ObjectMapper objectMapper ->
-            context.request.getBody().then {
-                Long transferId = Long.parseLong(pathTokens["transferId"])
-                Transfer transfer = transferService.transfer(transferId)
-                if (transfer) {
-                    render(objectMapper.writeValueAsString(transfer))
-                } else {
-                    context.response.status(404)
-                    render('{"error":"transfer not found"}')
-                }
-            }
-        }
-
         post('transfer') { Context context, TransferService transferService, ObjectMapper objectMapper, AuthenticatedUser principal ->
             context.request.body.then {
                 try {
@@ -1097,37 +1098,50 @@ ratpack {
                     context.response.status(201)
                     render(objectMapper.writeValueAsString(result))
                 } catch (Exception e) {
-                    java.util.logging.Logger.getLogger("TransferHandler").severe("transfer insert error [${e.class.simpleName}]: ${e.message}")
+                    log.error("transfer insert error [${e.class.simpleName}]: ${e.message}")
                     context.response.status(400)
                     render('{"error":"' + e.message + '"}')
                 }
             }
         }
 
-        put('transfer/:transferId') { Context context, TransferService transferService, ObjectMapper objectMapper ->
-            context.request.body.then {
-                Long transferId = Long.parseLong(pathTokens["transferId"])
-                try {
-                    Transfer transfer = objectMapper.readValue(it.text, Transfer)
-                    transfer.transferId = transferId
-                    Transfer result = transferService.transferUpdate(transfer)
-                    render(objectMapper.writeValueAsString(result))
-                } catch (RuntimeException e) {
-                    context.response.status(404)
-                    render('{"error":"' + e.message + '"}')
+        path('transfer/:transferId') { Context context, TransferService transferService, ObjectMapper objectMapper ->
+            Long transferId = Long.parseLong(context.pathTokens["transferId"])
+            byMethod {
+                get {
+                    context.request.getBody().then {
+                        Transfer transfer = transferService.transfer(transferId)
+                        if (transfer) {
+                            context.render(objectMapper.writeValueAsString(transfer))
+                        } else {
+                            context.response.status(404)
+                            context.render('{"error":"transfer not found"}')
+                        }
+                    }
                 }
-            }
-        }
-
-        delete('transfer/:transferId') { Context context, TransferService transferService ->
-            context.request.getBody().then {
-                Long transferId = Long.parseLong(pathTokens["transferId"])
-                boolean deleted = transferService.transferDelete(transferId)
-                if (deleted) {
-                    render('{}')
-                } else {
-                    context.response.status(404)
-                    render('{"error":"transfer not found"}')
+                put {
+                    context.request.body.then {
+                        try {
+                            Transfer transfer = objectMapper.readValue(it.text, Transfer)
+                            transfer.transferId = transferId
+                            Transfer result = transferService.transferUpdate(transfer)
+                            context.render(objectMapper.writeValueAsString(result))
+                        } catch (RuntimeException e) {
+                            context.response.status(404)
+                            context.render('{"error":"' + e.message + '"}')
+                        }
+                    }
+                }
+                delete {
+                    context.request.getBody().then {
+                        boolean deleted = transferService.transferDelete(transferId)
+                        if (deleted) {
+                            context.render('{}')
+                        } else {
+                            context.response.status(404)
+                            context.render('{"error":"transfer not found"}')
+                        }
+                    }
                 }
             }
         }
@@ -1137,19 +1151,6 @@ ratpack {
         get('pending/transaction/active') { Context context, PendingTransactionService pendingTransactionService, ObjectMapper objectMapper ->
             context.request.getBody().then {
                 render(objectMapper.writeValueAsString(pendingTransactionService.pendingTransactions()))
-            }
-        }
-
-        get('pending/transaction/:pendingTransactionId') { Context context, PendingTransactionService pendingTransactionService, ObjectMapper objectMapper ->
-            context.request.getBody().then {
-                Long pendingTransactionId = Long.parseLong(pathTokens["pendingTransactionId"])
-                PendingTransaction pt = pendingTransactionService.pendingTransaction(pendingTransactionId)
-                if (pt) {
-                    render(objectMapper.writeValueAsString(pt))
-                } else {
-                    context.response.status(404)
-                    render('{"error":"pending transaction not found"}')
-                }
             }
         }
 
@@ -1167,21 +1168,6 @@ ratpack {
             }
         }
 
-        put('pending/transaction/:pendingTransactionId') { Context context, PendingTransactionService pendingTransactionService, ObjectMapper objectMapper ->
-            context.request.body.then {
-                Long pendingTransactionId = Long.parseLong(pathTokens["pendingTransactionId"])
-                try {
-                    PendingTransaction pt = objectMapper.readValue(it.text, PendingTransaction)
-                    pt.pendingTransactionId = pendingTransactionId
-                    PendingTransaction result = pendingTransactionService.pendingTransactionUpdate(pt)
-                    render(objectMapper.writeValueAsString(result))
-                } catch (RuntimeException e) {
-                    context.response.status(404)
-                    render('{"error":"' + e.message + '"}')
-                }
-            }
-        }
-
         delete('pending/transaction/delete/all') { Context context, PendingTransactionService pendingTransactionService ->
             context.request.getBody().then {
                 pendingTransactionService.pendingTransactionDeleteAll()
@@ -1190,15 +1176,43 @@ ratpack {
             }
         }
 
-        delete('pending/transaction/:pendingTransactionId') { Context context, PendingTransactionService pendingTransactionService ->
-            context.request.getBody().then {
-                Long pendingTransactionId = Long.parseLong(pathTokens["pendingTransactionId"])
-                boolean deleted = pendingTransactionService.pendingTransactionDelete(pendingTransactionId)
-                if (deleted) {
-                    render('{}')
-                } else {
-                    context.response.status(404)
-                    render('{"error":"pending transaction not found"}')
+        path('pending/transaction/:pendingTransactionId') { Context context, PendingTransactionService pendingTransactionService, ObjectMapper objectMapper ->
+            Long pendingTransactionId = Long.parseLong(context.pathTokens["pendingTransactionId"])
+            byMethod {
+                get {
+                    context.request.getBody().then {
+                        PendingTransaction pt = pendingTransactionService.pendingTransaction(pendingTransactionId)
+                        if (pt) {
+                            context.render(objectMapper.writeValueAsString(pt))
+                        } else {
+                            context.response.status(404)
+                            context.render('{"error":"pending transaction not found"}')
+                        }
+                    }
+                }
+                put {
+                    context.request.body.then {
+                        try {
+                            PendingTransaction pt = objectMapper.readValue(it.text, PendingTransaction)
+                            pt.pendingTransactionId = pendingTransactionId
+                            PendingTransaction result = pendingTransactionService.pendingTransactionUpdate(pt)
+                            context.render(objectMapper.writeValueAsString(result))
+                        } catch (RuntimeException e) {
+                            context.response.status(404)
+                            context.render('{"error":"' + e.message + '"}')
+                        }
+                    }
+                }
+                delete {
+                    context.request.getBody().then {
+                        boolean deleted = pendingTransactionService.pendingTransactionDelete(pendingTransactionId)
+                        if (deleted) {
+                            context.render('{}')
+                        } else {
+                            context.response.status(404)
+                            context.render('{"error":"pending transaction not found"}')
+                        }
+                    }
                 }
             }
         }
@@ -1208,19 +1222,6 @@ ratpack {
         get('family-member/active') { Context context, FamilyMemberService familyMemberService, ObjectMapper objectMapper ->
             context.request.getBody().then {
                 render(objectMapper.writeValueAsString(familyMemberService.familyMembers()))
-            }
-        }
-
-        get('family-member/:familyMemberId') { Context context, FamilyMemberService familyMemberService, ObjectMapper objectMapper ->
-            context.request.getBody().then {
-                Long familyMemberId = Long.parseLong(pathTokens["familyMemberId"])
-                FamilyMember familyMember = familyMemberService.familyMember(familyMemberId)
-                if (familyMember) {
-                    render(objectMapper.writeValueAsString(familyMember))
-                } else {
-                    context.response.status(404)
-                    render('{"error":"family member not found"}')
-                }
             }
         }
 
@@ -1238,31 +1239,11 @@ ratpack {
             }
         }
 
-        put('family-member/:familyMemberId') { Context context, FamilyMemberService familyMemberService, ObjectMapper objectMapper ->
-            context.request.body.then {
-                Long familyMemberId = Long.parseLong(pathTokens["familyMemberId"])
-                try {
-                    FamilyMember familyMember = objectMapper.readValue(it.text, FamilyMember)
-                    familyMember.familyMemberId = familyMemberId
-                    FamilyMember result = familyMemberService.familyMemberUpdate(familyMember)
-                    render(objectMapper.writeValueAsString(result))
-                } catch (RuntimeException e) {
-                    context.response.status(404)
-                    render('{"error":"' + e.message + '"}')
-                }
-            }
-        }
-
-        delete('family-member/:familyMemberId') { Context context, FamilyMemberService familyMemberService ->
+        get('family-member/owner/:owner/relationship/:relationship') { Context context, FamilyMemberService familyMemberService, ObjectMapper objectMapper ->
             context.request.getBody().then {
-                Long familyMemberId = Long.parseLong(pathTokens["familyMemberId"])
-                boolean deleted = familyMemberService.familyMemberDelete(familyMemberId)
-                if (deleted) {
-                    render('{}')
-                } else {
-                    context.response.status(404)
-                    render('{"error":"family member not found"}')
-                }
+                String owner = pathTokens["owner"]
+                String relationship = pathTokens["relationship"]
+                render(objectMapper.writeValueAsString(familyMemberService.familyMembersByOwnerAndRelationship(owner, relationship)))
             }
         }
 
@@ -1270,14 +1251,6 @@ ratpack {
             context.request.getBody().then {
                 String owner = pathTokens["owner"]
                 render(objectMapper.writeValueAsString(familyMemberService.familyMembersByOwner(owner)))
-            }
-        }
-
-        get('family-member/owner/:owner/relationship/:relationship') { Context context, FamilyMemberService familyMemberService, ObjectMapper objectMapper ->
-            context.request.getBody().then {
-                String owner = pathTokens["owner"]
-                String relationship = pathTokens["relationship"]
-                render(objectMapper.writeValueAsString(familyMemberService.familyMembersByOwnerAndRelationship(owner, relationship)))
             }
         }
 
@@ -1307,24 +1280,52 @@ ratpack {
             }
         }
 
+        path('family-member/:familyMemberId') { Context context, FamilyMemberService familyMemberService, ObjectMapper objectMapper ->
+            Long familyMemberId = Long.parseLong(context.pathTokens["familyMemberId"])
+            byMethod {
+                get {
+                    context.request.getBody().then {
+                        FamilyMember familyMember = familyMemberService.familyMember(familyMemberId)
+                        if (familyMember) {
+                            context.render(objectMapper.writeValueAsString(familyMember))
+                        } else {
+                            context.response.status(404)
+                            context.render('{"error":"family member not found"}')
+                        }
+                    }
+                }
+                put {
+                    context.request.body.then {
+                        try {
+                            FamilyMember familyMember = objectMapper.readValue(it.text, FamilyMember)
+                            familyMember.familyMemberId = familyMemberId
+                            FamilyMember result = familyMemberService.familyMemberUpdate(familyMember)
+                            context.render(objectMapper.writeValueAsString(result))
+                        } catch (RuntimeException e) {
+                            context.response.status(404)
+                            context.render('{"error":"' + e.message + '"}')
+                        }
+                    }
+                }
+                delete {
+                    context.request.getBody().then {
+                        boolean deleted = familyMemberService.familyMemberDelete(familyMemberId)
+                        if (deleted) {
+                            context.render('{}')
+                        } else {
+                            context.response.status(404)
+                            context.render('{"error":"family member not found"}')
+                        }
+                    }
+                }
+            }
+        }
+
         // ===== MEDICAL PROVIDER =====
 
         get('medical-provider/active') { Context context, MedicalProviderService medicalProviderService, ObjectMapper objectMapper ->
             context.request.getBody().then {
                 render(objectMapper.writeValueAsString(medicalProviderService.medicalProviders()))
-            }
-        }
-
-        get('medical-provider/:providerId') { Context context, MedicalProviderService medicalProviderService, ObjectMapper objectMapper ->
-            context.request.getBody().then {
-                Long providerId = Long.parseLong(pathTokens["providerId"])
-                MedicalProvider medicalProvider = medicalProviderService.medicalProvider(providerId)
-                if (medicalProvider) {
-                    render(objectMapper.writeValueAsString(medicalProvider))
-                } else {
-                    context.response.status(404)
-                    render('{"error":"medical provider not found"}')
-                }
             }
         }
 
@@ -1342,30 +1343,43 @@ ratpack {
             }
         }
 
-        put('medical-provider/:providerId') { Context context, MedicalProviderService medicalProviderService, ObjectMapper objectMapper ->
-            context.request.body.then {
-                Long providerId = Long.parseLong(pathTokens["providerId"])
-                try {
-                    MedicalProvider medicalProvider = objectMapper.readValue(it.text, MedicalProvider)
-                    medicalProvider.providerId = providerId
-                    MedicalProvider result = medicalProviderService.medicalProviderUpdate(medicalProvider)
-                    render(objectMapper.writeValueAsString(result))
-                } catch (RuntimeException e) {
-                    context.response.status(404)
-                    render('{"error":"' + e.message + '"}')
+        path('medical-provider/:providerId') { Context context, MedicalProviderService medicalProviderService, ObjectMapper objectMapper ->
+            Long providerId = Long.parseLong(context.pathTokens["providerId"])
+            byMethod {
+                get {
+                    context.request.getBody().then {
+                        MedicalProvider medicalProvider = medicalProviderService.medicalProvider(providerId)
+                        if (medicalProvider) {
+                            context.render(objectMapper.writeValueAsString(medicalProvider))
+                        } else {
+                            context.response.status(404)
+                            context.render('{"error":"medical provider not found"}')
+                        }
+                    }
                 }
-            }
-        }
-
-        delete('medical-provider/:providerId') { Context context, MedicalProviderService medicalProviderService ->
-            context.request.getBody().then {
-                Long providerId = Long.parseLong(pathTokens["providerId"])
-                boolean deleted = medicalProviderService.medicalProviderDelete(providerId)
-                if (deleted) {
-                    render('{}')
-                } else {
-                    context.response.status(404)
-                    render('{"error":"medical provider not found"}')
+                put {
+                    context.request.body.then {
+                        try {
+                            MedicalProvider medicalProvider = objectMapper.readValue(it.text, MedicalProvider)
+                            medicalProvider.providerId = providerId
+                            MedicalProvider result = medicalProviderService.medicalProviderUpdate(medicalProvider)
+                            context.render(objectMapper.writeValueAsString(result))
+                        } catch (RuntimeException e) {
+                            context.response.status(404)
+                            context.render('{"error":"' + e.message + '"}')
+                        }
+                    }
+                }
+                delete {
+                    context.request.getBody().then {
+                        boolean deleted = medicalProviderService.medicalProviderDelete(providerId)
+                        if (deleted) {
+                            context.render('{}')
+                        } else {
+                            context.response.status(404)
+                            context.render('{"error":"medical provider not found"}')
+                        }
+                    }
                 }
             }
         }
@@ -1386,19 +1400,6 @@ ratpack {
             }
         }
 
-        get('medical-expense/:medicalExpenseId') { Context context, MedicalExpenseService medicalExpenseService, ObjectMapper objectMapper ->
-            context.request.getBody().then {
-                Long medicalExpenseId = Long.parseLong(pathTokens["medicalExpenseId"])
-                MedicalExpense medicalExpense = medicalExpenseService.medicalExpense(medicalExpenseId)
-                if (medicalExpense) {
-                    render(objectMapper.writeValueAsString(medicalExpense))
-                } else {
-                    context.response.status(404)
-                    render('{"error":"medical expense not found"}')
-                }
-            }
-        }
-
         post('medical-expense') { Context context, MedicalExpenseService medicalExpenseService, ObjectMapper objectMapper ->
             context.request.body.then {
                 try {
@@ -1413,30 +1414,43 @@ ratpack {
             }
         }
 
-        put('medical-expense/:medicalExpenseId') { Context context, MedicalExpenseService medicalExpenseService, ObjectMapper objectMapper ->
-            context.request.body.then {
-                Long medicalExpenseId = Long.parseLong(pathTokens["medicalExpenseId"])
-                try {
-                    MedicalExpense medicalExpense = objectMapper.readValue(it.text, MedicalExpense)
-                    medicalExpense.medicalExpenseId = medicalExpenseId
-                    MedicalExpense result = medicalExpenseService.medicalExpenseUpdate(medicalExpense)
-                    render(objectMapper.writeValueAsString(result))
-                } catch (RuntimeException e) {
-                    context.response.status(404)
-                    render('{"error":"' + e.message + '"}')
+        path('medical-expense/:medicalExpenseId') { Context context, MedicalExpenseService medicalExpenseService, ObjectMapper objectMapper ->
+            Long medicalExpenseId = Long.parseLong(context.pathTokens["medicalExpenseId"])
+            byMethod {
+                get {
+                    context.request.getBody().then {
+                        MedicalExpense medicalExpense = medicalExpenseService.medicalExpense(medicalExpenseId)
+                        if (medicalExpense) {
+                            context.render(objectMapper.writeValueAsString(medicalExpense))
+                        } else {
+                            context.response.status(404)
+                            context.render('{"error":"medical expense not found"}')
+                        }
+                    }
                 }
-            }
-        }
-
-        delete('medical-expense/:medicalExpenseId') { Context context, MedicalExpenseService medicalExpenseService ->
-            context.request.getBody().then {
-                Long medicalExpenseId = Long.parseLong(pathTokens["medicalExpenseId"])
-                boolean deleted = medicalExpenseService.medicalExpenseDelete(medicalExpenseId)
-                if (deleted) {
-                    render('{}')
-                } else {
-                    context.response.status(404)
-                    render('{"error":"medical expense not found"}')
+                put {
+                    context.request.body.then {
+                        try {
+                            MedicalExpense medicalExpense = objectMapper.readValue(it.text, MedicalExpense)
+                            medicalExpense.medicalExpenseId = medicalExpenseId
+                            MedicalExpense result = medicalExpenseService.medicalExpenseUpdate(medicalExpense)
+                            context.render(objectMapper.writeValueAsString(result))
+                        } catch (RuntimeException e) {
+                            context.response.status(404)
+                            context.render('{"error":"' + e.message + '"}')
+                        }
+                    }
+                }
+                delete {
+                    context.request.getBody().then {
+                        boolean deleted = medicalExpenseService.medicalExpenseDelete(medicalExpenseId)
+                        if (deleted) {
+                            context.render('{}')
+                        } else {
+                            context.response.status(404)
+                            context.render('{"error":"medical expense not found"}')
+                        }
+                    }
                 }
             }
         }
@@ -1529,15 +1543,43 @@ ratpack {
         }
 
         // 2-segment parameterised catch-all — must follow all fixed 2-segment routes above
-        get('medical-expenses/:medicalExpenseId') { Context context, MedicalExpenseService medicalExpenseService, ObjectMapper objectMapper ->
-            context.request.getBody().then {
-                Long medicalExpenseId = Long.parseLong(pathTokens["medicalExpenseId"])
-                MedicalExpense medicalExpense = medicalExpenseService.medicalExpense(medicalExpenseId)
-                if (medicalExpense) {
-                    render(objectMapper.writeValueAsString(medicalExpense))
-                } else {
-                    context.response.status(404)
-                    render('{"error":"medical expense not found"}')
+        path('medical-expenses/:medicalExpenseId') { Context context, MedicalExpenseService medicalExpenseService, ObjectMapper objectMapper ->
+            Long medicalExpenseId = Long.parseLong(context.pathTokens["medicalExpenseId"])
+            byMethod {
+                get {
+                    context.request.getBody().then {
+                        MedicalExpense medicalExpense = medicalExpenseService.medicalExpense(medicalExpenseId)
+                        if (medicalExpense) {
+                            context.render(objectMapper.writeValueAsString(medicalExpense))
+                        } else {
+                            context.response.status(404)
+                            context.render('{"error":"medical expense not found"}')
+                        }
+                    }
+                }
+                put {
+                    context.request.body.then {
+                        try {
+                            MedicalExpense medicalExpense = objectMapper.readValue(it.text, MedicalExpense)
+                            medicalExpense.medicalExpenseId = medicalExpenseId
+                            MedicalExpense result = medicalExpenseService.medicalExpenseUpdate(medicalExpense)
+                            context.render(objectMapper.writeValueAsString(result))
+                        } catch (RuntimeException e) {
+                            context.response.status(404)
+                            context.render('{"error":"' + e.message + '"}')
+                        }
+                    }
+                }
+                delete {
+                    context.request.getBody().then {
+                        boolean deleted = medicalExpenseService.medicalExpenseDelete(medicalExpenseId)
+                        if (deleted) {
+                            context.render('{}')
+                        } else {
+                            context.response.status(404)
+                            context.render('{"error":"medical expense not found"}')
+                        }
+                    }
                 }
             }
         }
@@ -1668,21 +1710,6 @@ ratpack {
             }
         }
 
-        put('medical-expenses/:medicalExpenseId') { Context context, MedicalExpenseService medicalExpenseService, ObjectMapper objectMapper ->
-            context.request.body.then {
-                Long medicalExpenseId = Long.parseLong(pathTokens["medicalExpenseId"])
-                try {
-                    MedicalExpense medicalExpense = objectMapper.readValue(it.text, MedicalExpense)
-                    medicalExpense.medicalExpenseId = medicalExpenseId
-                    MedicalExpense result = medicalExpenseService.medicalExpenseUpdate(medicalExpense)
-                    render(objectMapper.writeValueAsString(result))
-                } catch (RuntimeException e) {
-                    context.response.status(404)
-                    render('{"error":"' + e.message + '"}')
-                }
-            }
-        }
-
         post('medical-expenses/:medicalExpenseId/payments/:transactionId') { Context context, MedicalExpenseService medicalExpenseService, ObjectMapper objectMapper ->
             context.request.getBody().then {
                 Long medicalExpenseId = Long.parseLong(pathTokens["medicalExpenseId"])
@@ -1706,19 +1733,6 @@ ratpack {
                 } catch (RuntimeException e) {
                     context.response.status(400)
                     render('{"error":"' + e.message + '"}')
-                }
-            }
-        }
-
-        delete('medical-expenses/:medicalExpenseId') { Context context, MedicalExpenseService medicalExpenseService ->
-            context.request.getBody().then {
-                Long medicalExpenseId = Long.parseLong(pathTokens["medicalExpenseId"])
-                boolean deleted = medicalExpenseService.medicalExpenseDelete(medicalExpenseId)
-                if (deleted) {
-                    render('{}')
-                } else {
-                    context.response.status(404)
-                    render('{"error":"medical expense not found"}')
                 }
             }
         }
