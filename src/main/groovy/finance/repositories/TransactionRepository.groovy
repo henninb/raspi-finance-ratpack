@@ -54,6 +54,15 @@ class TransactionRepository {
         return true
     }
 
+    boolean updateTransferLinkedTransaction(String guid, BigDecimal amount, java.sql.Date transactionDate) {
+        dslContext.update(T_TRANSACTION)
+                .set(T_TRANSACTION.AMOUNT, amount)
+                .set(T_TRANSACTION.TRANSACTION_DATE, (java.time.LocalDate) transactionDate?.toLocalDate())
+                .where(T_TRANSACTION.GUID.eq(guid))
+                .execute()
+        return true
+    }
+
     boolean transactionStateUpdate(String guid, String transactionState) {
         dslContext.update(T_TRANSACTION)
                 .set(T_TRANSACTION.TRANSACTION_STATE, transactionState)

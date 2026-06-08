@@ -29,6 +29,9 @@ class Transfer {
 
     @JsonGetter("transactionDate")
     String jsonGetterTransactionDate() {
+        if (!this.transactionDate) {
+            return null
+        }
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd")
         sdf.lenient = false
         return sdf.format(this.transactionDate)

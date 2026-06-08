@@ -74,4 +74,15 @@ class TransferRepository {
                     .or(T_TRANSFER.GUID_DESTINATION.eq(guid)))
         ) > 0
     }
+
+    boolean existsByTransfer(String sourceAccount, String destinationAccount, BigDecimal amount, java.sql.Date transactionDate) {
+        return dslContext.fetchCount(
+            dslContext.selectFrom(T_TRANSFER)
+                .where(T_TRANSFER.SOURCE_ACCOUNT.eq(sourceAccount)
+                    .and(T_TRANSFER.DESTINATION_ACCOUNT.eq(destinationAccount))
+                    .and(T_TRANSFER.AMOUNT.eq(amount))
+                    .and(T_TRANSFER.TRANSACTION_DATE.eq(transactionDate?.toLocalDate()))
+                    .and(T_TRANSFER.ACTIVE_STATUS.eq(true)))
+        ) > 0
+    }
 }

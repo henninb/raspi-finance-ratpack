@@ -1106,7 +1106,14 @@ ratpack {
         }
 
         path('transfer/:transferId') { Context context, TransferService transferService, ObjectMapper objectMapper ->
-            Long transferId = Long.parseLong(context.pathTokens["transferId"])
+            Long transferId
+            try {
+                transferId = Long.parseLong(context.pathTokens["transferId"])
+            } catch (NumberFormatException ignored) {
+                context.response.status(400)
+                context.render('{"error":"invalid transferId"}')
+                return
+            }
             byMethod {
                 get {
                     context.request.getBody().then {
@@ -1791,13 +1798,17 @@ ratpack {
                     if (query.trim().startsWith("mutation")) {
                         if (query.contains("createTransfer")) {
                             Map t = (Map) variables.get("transfer") ?: [:]
+                            Object amountVal = t.get("amount")
+                            Object dateVal = t.get("transactionDate")
+                            if (!amountVal) throw new RuntimeException("transfer.amount is required")
+                            if (!dateVal) throw new RuntimeException("transfer.transactionDate is required")
                             Transfer transfer = new Transfer()
                             transfer.sourceAccount = (String) t.get("sourceAccount")
                             transfer.destinationAccount = (String) t.get("destinationAccount")
-                            transfer.amount = new BigDecimal(t.get("amount").toString())
+                            transfer.amount = new BigDecimal(amountVal.toString())
                             transfer.activeStatus = t.get("activeStatus") as Boolean ?: true
                             transfer.owner = principal.username
-                            transfer.transactionDate = java.sql.Date.valueOf((String) t.get("transactionDate"))
+                            transfer.transactionDate = java.sql.Date.valueOf((String) dateVal)
                             data.createTransfer = transferService.transferInsert(transfer)
                         } else if (query.contains("createPayment")) {
                             Map p = (Map) variables.get("payment") ?: [:]
@@ -1892,13 +1903,17 @@ ratpack {
                     if (query.trim().startsWith("mutation")) {
                         if (query.contains("createTransfer")) {
                             Map t = (Map) variables.get("transfer") ?: [:]
+                            Object amountVal = t.get("amount")
+                            Object dateVal = t.get("transactionDate")
+                            if (!amountVal) throw new RuntimeException("transfer.amount is required")
+                            if (!dateVal) throw new RuntimeException("transfer.transactionDate is required")
                             Transfer transfer = new Transfer()
                             transfer.sourceAccount = (String) t.get("sourceAccount")
                             transfer.destinationAccount = (String) t.get("destinationAccount")
-                            transfer.amount = new BigDecimal(t.get("amount").toString())
+                            transfer.amount = new BigDecimal(amountVal.toString())
                             transfer.activeStatus = t.get("activeStatus") as Boolean ?: true
                             transfer.owner = principal.username
-                            transfer.transactionDate = java.sql.Date.valueOf((String) t.get("transactionDate"))
+                            transfer.transactionDate = java.sql.Date.valueOf((String) dateVal)
                             data.createTransfer = transferService.transferInsert(transfer)
                         } else if (query.contains("createPayment")) {
                             Map p = (Map) variables.get("payment") ?: [:]

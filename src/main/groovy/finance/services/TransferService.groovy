@@ -40,6 +40,13 @@ class TransferService implements Service {
     }
 
     Transfer transferInsert(Transfer transfer) {
+        if (transfer.sourceAccount == transfer.destinationAccount) {
+            throw new RuntimeException("Source and destination accounts must be different")
+        }
+        if (!transfer.amount || transfer.amount <= BigDecimal.ZERO) {
+            throw new RuntimeException("Transfer amount must be positive")
+        }
+
         transfer.dateUpdated = new Timestamp(System.currentTimeMillis())
         transfer.dateAdded = new Timestamp(System.currentTimeMillis())
 
@@ -50,6 +57,10 @@ class TransferService implements Service {
         Account destinationAccount = accountRepository.account(transfer.destinationAccount)
         if (!destinationAccount) {
             throw new RuntimeException("Destination account not found: ${transfer.destinationAccount}")
+        }
+
+        if (transferRepository.existsByTransfer(transfer.sourceAccount, transfer.destinationAccount, transfer.amount, transfer.transactionDate)) {
+            throw new RuntimeException("A transfer with the same source, destination, amount, and date already exists")
         }
 
         Timestamp now = new Timestamp(System.currentTimeMillis())
@@ -89,10 +100,23 @@ class TransferService implements Service {
         destinationTransaction.dateUpdated = now
         destinationTransaction.dateAdded = now
 
-        Transaction insertedDestination = transactionService.transactionInsert(destinationTransaction)
+        Transaction insertedDestination
+        try {
+            insertedDestination = transactionService.transactionInsert(destinationTransaction)
+        } catch (Exception e) {
+            transactionService.deleteTransactionCascade(insertedSource.guid)
+            throw new RuntimeException("Transfer insert failed; source transaction rolled back: ${e.message}", e)
+        }
         transfer.guidDestination = insertedDestination.guid
 
-        transferRepository.transferInsert(transfer)
+        try {
+            transferRepository.transferInsert(transfer)
+        } catch (Exception e) {
+            transactionService.deleteTransactionCascade(insertedSource.guid)
+            transactionService.deleteTransactionCascade(insertedDestination.guid)
+            throw new RuntimeException("Transfer record insert failed; transactions rolled back: ${e.message}", e)
+        }
+
         log.info("inserted transfer sourceAccount=${transfer.sourceAccount} destinationAccount=${transfer.destinationAccount}")
         return transfer
     }
@@ -103,6 +127,12 @@ class TransferService implements Service {
             throw new RuntimeException("transfer not found: ${transfer.transferId}")
         }
         transferRepository.transferUpdate(transfer)
+        if (existing.guidSource) {
+            transactionService.updateTransferLinkedTransaction(existing.guidSource, transfer.amount.negate(), transfer.transactionDate)
+        }
+        if (existing.guidDestination) {
+            transactionService.updateTransferLinkedTransaction(existing.guidDestination, transfer.amount, transfer.transactionDate)
+        }
         return transferRepository.transfer(transfer.transferId)
     }
 
@@ -117,15 +147,24 @@ class TransferService implements Service {
         // Delete the transfer first to release FK references to t_transaction
         boolean deleted = transferRepository.transferDelete(transferId)
 
-        // Then cascade-delete the linked transactions
+        // Cascade-delete linked transactions; each is isolated so one failure doesn't block the other
         if (guidSource) {
-            transactionService.deleteTransactionCascade(guidSource)
-            log.info("Deleted source transaction: ${guidSource}")
+            try {
+                transactionService.deleteTransactionCascade(guidSource)
+                log.info("Deleted source transaction: ${guidSource}")
+            } catch (Exception e) {
+                log.warn("Failed to delete source transaction ${guidSource}: ${e.message}")
+            }
         }
         if (guidDestination) {
-            transactionService.deleteTransactionCascade(guidDestination)
-            log.info("Deleted destination transaction: ${guidDestination}")
+            try {
+                transactionService.deleteTransactionCascade(guidDestination)
+                log.info("Deleted destination transaction: ${guidDestination}")
+            } catch (Exception e) {
+                log.warn("Failed to delete destination transaction ${guidDestination}: ${e.message}")
+            }
         }
+        accountRepository.updateTotalsForAllAccounts()
         return deleted
     }
 }

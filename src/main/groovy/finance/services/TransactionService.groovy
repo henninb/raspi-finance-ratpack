@@ -77,6 +77,12 @@ class TransactionService implements Service {
         return deleted
     }
 
+    boolean updateTransferLinkedTransaction(String guid, BigDecimal amount, java.sql.Date transactionDate) {
+        transactionRepository.updateTransferLinkedTransaction(guid, amount, transactionDate)
+        accountRepository.updateTotalsForAllAccounts()
+        return true
+    }
+
     // Internal cascade delete — bypasses FK reference guards, used by transfer/payment cascade deletes
     boolean deleteTransactionCascade(String guid) {
         if (!guid) {
