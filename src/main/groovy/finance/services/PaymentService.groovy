@@ -40,6 +40,13 @@ class PaymentService implements Service {
     }
 
     Payment paymentInsert(Payment payment) {
+        if (!payment.amount || payment.amount <= BigDecimal.ZERO) {
+            throw new IllegalArgumentException("Payment amount must be positive: ${payment.amount}")
+        }
+        if (payment.sourceAccount == payment.destinationAccount) {
+            throw new IllegalArgumentException("Source and destination accounts must be different: ${payment.sourceAccount}")
+        }
+
         Timestamp now = new Timestamp(System.currentTimeMillis())
         payment.dateUpdated = now
         payment.dateAdded = now

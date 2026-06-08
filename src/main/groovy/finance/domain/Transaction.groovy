@@ -33,12 +33,19 @@ class Transaction {
 
     @JsonSetter("transactionDate")
     void jsonSetterTransactionDate(String dateStr) {
-        this.transactionDate = dateStr ? java.sql.Date.valueOf(java.time.LocalDate.parse(dateStr)) : null
+        this.transactionDate = dateStr ? java.sql.Date.valueOf(parseLocalDate(dateStr)) : null
     }
 
     @JsonSetter("dueDate")
     void jsonSetterDueDate(String dateStr) {
-        this.dueDate = dateStr ? java.sql.Date.valueOf(java.time.LocalDate.parse(dateStr)) : null
+        this.dueDate = dateStr ? java.sql.Date.valueOf(parseLocalDate(dateStr)) : null
+    }
+
+    private static java.time.LocalDate parseLocalDate(String dateStr) {
+        if (dateStr.length() > 10) {
+            return java.time.LocalDate.parse(dateStr.substring(0, 10))
+        }
+        return java.time.LocalDate.parse(dateStr)
     }
 
     @JsonGetter("transactionDate")

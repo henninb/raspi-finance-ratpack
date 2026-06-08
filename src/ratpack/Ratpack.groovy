@@ -164,7 +164,7 @@ ratpack {
         get('csrf') { Context context ->
             context.request.getBody().then {
                 String token = UUID.randomUUID().toString().replace('-', '')
-                render('{"csrfToken":"' + token + '"}')
+                render('{"token":"' + token + '","headerName":"X-CSRF-TOKEN"}')
             }
         }
 
