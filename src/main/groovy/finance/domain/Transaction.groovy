@@ -2,6 +2,7 @@ package finance.domain
 
 import com.fasterxml.jackson.annotation.JsonGetter
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties
+import com.fasterxml.jackson.annotation.JsonSetter
 
 import java.sql.Date
 import java.sql.Timestamp
@@ -29,6 +30,16 @@ class Transaction {
     Boolean activeStatus
     Timestamp dateUpdated = new Timestamp(System.currentTimeMillis())
     Timestamp dateAdded = new Timestamp(System.currentTimeMillis())
+
+    @JsonSetter("transactionDate")
+    void jsonSetterTransactionDate(String dateStr) {
+        this.transactionDate = dateStr ? java.sql.Date.valueOf(java.time.LocalDate.parse(dateStr)) : null
+    }
+
+    @JsonSetter("dueDate")
+    void jsonSetterDueDate(String dateStr) {
+        this.dueDate = dateStr ? java.sql.Date.valueOf(java.time.LocalDate.parse(dateStr)) : null
+    }
 
     @JsonGetter("transactionDate")
     String jsonGetterTransactionDate() {

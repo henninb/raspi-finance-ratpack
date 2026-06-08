@@ -111,6 +111,21 @@ class TransferService implements Service {
         if (!existing) {
             return false
         }
-        return transferRepository.transferDelete(transferId)
+        String guidSource = existing.guidSource
+        String guidDestination = existing.guidDestination
+
+        // Delete the transfer first to release FK references to t_transaction
+        boolean deleted = transferRepository.transferDelete(transferId)
+
+        // Then cascade-delete the linked transactions
+        if (guidSource) {
+            transactionService.deleteTransactionCascade(guidSource)
+            log.info("Deleted source transaction: ${guidSource}")
+        }
+        if (guidDestination) {
+            transactionService.deleteTransactionCascade(guidDestination)
+            log.info("Deleted destination transaction: ${guidDestination}")
+        }
+        return deleted
     }
 }

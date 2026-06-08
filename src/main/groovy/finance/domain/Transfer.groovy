@@ -1,6 +1,7 @@
 package finance.domain
 
 import com.fasterxml.jackson.annotation.JsonGetter
+import com.fasterxml.jackson.annotation.JsonSetter
 import groovy.transform.ToString
 
 import java.sql.Date
@@ -20,6 +21,11 @@ class Transfer {
     Boolean activeStatus = true
     Timestamp dateUpdated = new Timestamp(System.currentTimeMillis())
     Timestamp dateAdded = new Timestamp(System.currentTimeMillis())
+
+    @JsonSetter("transactionDate")
+    void jsonSetterTransactionDate(String dateStr) {
+        this.transactionDate = dateStr ? java.sql.Date.valueOf(java.time.LocalDate.parse(dateStr)) : null
+    }
 
     @JsonGetter("transactionDate")
     String jsonGetterTransactionDate() {

@@ -113,7 +113,22 @@ class PaymentService implements Service {
         if (!existing) {
             return false
         }
-        return paymentRepository.paymentDelete(paymentId)
+        String guidSource = existing.guidSource
+        String guidDestination = existing.guidDestination
+
+        // Delete the payment first to release FK references to t_transaction
+        boolean deleted = paymentRepository.paymentDelete(paymentId)
+
+        // Then cascade-delete the linked transactions
+        if (guidSource) {
+            transactionService.deleteTransactionCascade(guidSource)
+            log.info("Deleted source transaction: ${guidSource}")
+        }
+        if (guidDestination) {
+            transactionService.deleteTransactionCascade(guidDestination)
+            log.info("Deleted destination transaction: ${guidDestination}")
+        }
+        return deleted
     }
 
     private BigDecimal calculateSourceAmount(BigDecimal amount, AccountType sourceType, AccountType destType) {

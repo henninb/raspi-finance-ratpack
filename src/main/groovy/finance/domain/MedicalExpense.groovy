@@ -1,6 +1,7 @@
 package finance.domain
 
 import com.fasterxml.jackson.annotation.JsonGetter
+import com.fasterxml.jackson.annotation.JsonSetter
 import groovy.transform.ToString
 
 import java.sql.Date
@@ -30,6 +31,16 @@ class MedicalExpense {
     BigDecimal paidAmount = BigDecimal.ZERO
     Timestamp dateUpdated = new Timestamp(System.currentTimeMillis())
     Timestamp dateAdded = new Timestamp(System.currentTimeMillis())
+
+    @JsonSetter("serviceDate")
+    void jsonSetterServiceDate(String dateStr) {
+        this.serviceDate = dateStr ? java.sql.Date.valueOf(java.time.LocalDate.parse(dateStr)) : null
+    }
+
+    @JsonSetter("paidDate")
+    void jsonSetterPaidDate(String dateStr) {
+        this.paidDate = dateStr ? java.sql.Date.valueOf(java.time.LocalDate.parse(dateStr)) : null
+    }
 
     @JsonGetter("serviceDate")
     String jsonGetterServiceDate() {

@@ -77,6 +77,19 @@ class TransactionService implements Service {
         return deleted
     }
 
+    // Internal cascade delete — bypasses FK reference guards, used by transfer/payment cascade deletes
+    boolean deleteTransactionCascade(String guid) {
+        if (!guid) {
+            return false
+        }
+        Transaction transaction = transactionRepository.transaction(guid)
+        if (!transaction) {
+            log.warn("Transaction not found for cascade delete (stale reference): ${guid}")
+            return false
+        }
+        return transactionRepository.transactionDelete(guid)
+    }
+
     Transaction transactionInsert(Transaction transaction) {
         transaction.dateUpdated = new Timestamp(System.currentTimeMillis())
         transaction.dateAdded = new Timestamp(System.currentTimeMillis())

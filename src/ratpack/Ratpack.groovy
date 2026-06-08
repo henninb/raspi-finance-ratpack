@@ -1098,7 +1098,7 @@ ratpack {
                     context.response.status(201)
                     render(objectMapper.writeValueAsString(result))
                 } catch (Exception e) {
-                    log.error("transfer insert error [${e.class.simpleName}]: ${e.message}")
+                    java.util.logging.Logger.getLogger("TransferHandler").severe("transfer insert error [${e.class.simpleName}]: ${e.message}")
                     context.response.status(400)
                     render('{"error":"' + e.message + '"}')
                 }
