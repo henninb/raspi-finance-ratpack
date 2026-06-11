@@ -60,12 +60,19 @@ class AccountService implements Service {
         if (!existing) {
             return false
         }
+        long txCount = accountRepository.countTransactionsByAccountNameOwner(accountNameOwner)
+        if (txCount > 0) {
+            throw new RuntimeException("Cannot delete account '${accountNameOwner}': ${txCount} transaction(s) exist. Deactivate the account instead.")
+        }
         return accountRepository.accountDelete(accountNameOwner)
     }
 
     Account accountRename(String oldAccountNameOwner, String newAccountNameOwner) {
         if (!accountRepository.account(oldAccountNameOwner)) {
             throw new RuntimeException("account not found: ${oldAccountNameOwner}")
+        }
+        if (accountRepository.account(newAccountNameOwner)) {
+            throw new RuntimeException("Cannot rename: account '${newAccountNameOwner}' already exists")
         }
         accountRepository.accountRename(oldAccountNameOwner, newAccountNameOwner)
         return accountRepository.account(newAccountNameOwner)
@@ -85,8 +92,16 @@ class AccountService implements Service {
         if (!existing) {
             throw new RuntimeException("account not found: ${accountNameOwner}")
         }
+        int reactivated = accountRepository.reactivateAllTransactionsByAccountNameOwner(accountNameOwner)
+        log.info("Reactivated ${reactivated} transactions for account: ${accountNameOwner}")
         accountRepository.accountActivate(accountNameOwner)
         return accountRepository.account(accountNameOwner)
+    }
+
+    boolean syncTotals() {
+        accountRepository.updateTotalsForAllAccounts()
+        accountRepository.updateValidationDates()
+        return true
     }
 
     boolean updateTotalsForAllAccounts() {

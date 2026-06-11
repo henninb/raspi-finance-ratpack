@@ -3,6 +3,7 @@ package finance.repositories
 import com.google.inject.Inject
 import finance.domain.Transaction
 import groovy.util.logging.Slf4j
+import org.jooq.Condition
 import org.jooq.DSLContext
 import org.jooq.SQLDialect
 import org.jooq.impl.DSL
@@ -145,5 +146,88 @@ class TransactionRepository {
                         .and(T_TRANSACTION.TRANSACTION_STATE.in(transactionStates))
                         .and(T_TRANSACTION.ACTIVE_STATUS.eq(true)))
                 .fetchOneInto(BigDecimal) ?: BigDecimal.ZERO
+    }
+
+    List<Transaction> transactionsFiltered(
+            String accountNameOwner,
+            int page,
+            int size,
+            String search,
+            List<String> states,
+            List<String> transactionTypes,
+            List<String> reoccurringTypes,
+            LocalDate startDate,
+            LocalDate endDate,
+            BigDecimal minAmount,
+            BigDecimal maxAmount) {
+        List<Condition> conditions = buildFilterConditions(accountNameOwner, search, states, transactionTypes, reoccurringTypes, startDate, endDate, minAmount, maxAmount)
+        return dslContext.selectFrom(T_TRANSACTION)
+                .where(DSL.and(conditions))
+                .orderBy(T_TRANSACTION.TRANSACTION_DATE.desc())
+                .limit(size)
+                .offset(page * size)
+                .fetchInto(Transaction)
+    }
+
+    int countTransactionsFiltered(
+            String accountNameOwner,
+            String search,
+            List<String> states,
+            List<String> transactionTypes,
+            List<String> reoccurringTypes,
+            LocalDate startDate,
+            LocalDate endDate,
+            BigDecimal minAmount,
+            BigDecimal maxAmount) {
+        List<Condition> conditions = buildFilterConditions(accountNameOwner, search, states, transactionTypes, reoccurringTypes, startDate, endDate, minAmount, maxAmount)
+        return dslContext.fetchCount(
+            dslContext.selectFrom(T_TRANSACTION).where(DSL.and(conditions))
+        )
+    }
+
+    private List<Condition> buildFilterConditions(
+            String accountNameOwner,
+            String search,
+            List<String> states,
+            List<String> transactionTypes,
+            List<String> reoccurringTypes,
+            LocalDate startDate,
+            LocalDate endDate,
+            BigDecimal minAmount,
+            BigDecimal maxAmount) {
+        List<Condition> conditions = [
+            T_TRANSACTION.ACCOUNT_NAME_OWNER.eq(accountNameOwner),
+            T_TRANSACTION.ACTIVE_STATUS.eq(true)
+        ]
+        if (search) {
+            String term = "%${search.toLowerCase()}%"
+            conditions.add(
+                DSL.lower(T_TRANSACTION.DESCRIPTION).like(term)
+                    .or(DSL.lower(T_TRANSACTION.CATEGORY).like(term))
+                    .or(DSL.lower(T_TRANSACTION.NOTES).like(term))
+            )
+        }
+        if (states) {
+            conditions.add(T_TRANSACTION.TRANSACTION_STATE.in(states))
+        }
+        if (transactionTypes) {
+            conditions.add(T_TRANSACTION.TRANSACTION_TYPE.in(transactionTypes))
+        }
+        if (reoccurringTypes) {
+            conditions.add(T_TRANSACTION.REOCCURRING_TYPE.in(reoccurringTypes))
+        }
+        if (startDate) {
+            conditions.add(T_TRANSACTION.TRANSACTION_DATE.ge(startDate))
+        }
+        if (endDate) {
+            conditions.add(T_TRANSACTION.TRANSACTION_DATE.le(endDate))
+        }
+        if (minAmount != null) {
+            conditions.add(T_TRANSACTION.AMOUNT.ge(minAmount))
+        }
+        if (maxAmount != null) {
+            conditions.add(T_TRANSACTION.AMOUNT.le(maxAmount))
+        }
+        return conditions
     }
 }

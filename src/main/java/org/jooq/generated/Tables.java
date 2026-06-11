@@ -22,7 +22,6 @@ public class Tables {
     public static final TMedicalProvider T_MEDICAL_PROVIDER = new TMedicalProvider();
     public static final TParameter T_PARAMETER = new TParameter();
     public static final TPayment T_PAYMENT = new TPayment();
-    public static final TPendingTransaction T_PENDING_TRANSACTION = new TPendingTransaction();
     public static final TTransaction T_TRANSACTION = new TTransaction();
     public static final TTransfer T_TRANSFER = new TTransfer();
     public static final TUser T_USER = new TUser();
@@ -159,16 +158,6 @@ public class Tables {
         public final Field<java.sql.Timestamp> DATE_ADDED = createField(DSL.name("date_added"), SQLDataType.TIMESTAMP);
 
         public TPayment() { super(DSL.name("t_payment")); }
-    }
-
-    public static class TPendingTransaction extends TableImpl<org.jooq.Record> {
-        public final Field<Long> PENDING_TRANSACTION_ID = createField(DSL.name("pending_transaction_id"), SQLDataType.BIGINT);
-        public final Field<BigDecimal> AMOUNT = createField(DSL.name("amount"), SQLDataType.DECIMAL);
-        public final Field<String> DESCRIPTION = createField(DSL.name("description"), SQLDataType.VARCHAR);
-        public final Field<String> REVIEW_STATUS = createField(DSL.name("review_status"), SQLDataType.VARCHAR);
-        public final Field<java.sql.Date> TRANSACTION_DATE = createField(DSL.name("transaction_date"), SQLDataType.DATE);
-
-        public TPendingTransaction() { super(DSL.name("t_pending_transaction")); }
     }
 
     public static class TTransaction extends TableImpl<org.jooq.Record> {

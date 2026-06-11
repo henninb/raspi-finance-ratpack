@@ -17,7 +17,6 @@ import finance.domain.MedicalExpense
 import finance.domain.MedicalProvider
 import finance.domain.Parameter
 import finance.domain.Payment
-import finance.domain.PendingTransaction
 import finance.domain.Summary
 import finance.domain.Transaction
 import finance.domain.Transfer
@@ -33,7 +32,6 @@ import finance.services.MedicalExpenseService
 import finance.services.MedicalProviderService
 import finance.services.ParameterService
 import finance.services.PaymentService
-import finance.services.PendingTransactionService
 import finance.services.SummaryService
 import finance.services.TokenBlacklistService
 import finance.services.TransactionService
@@ -83,7 +81,6 @@ ratpack {
         bind(SummaryService)
         bind(ValidationAmountService)
         bind(TransferService)
-        bind(PendingTransactionService)
         bind(FamilyMemberService)
         bind(MedicalProviderService)
         bind(MedicalExpenseService)
@@ -382,6 +379,14 @@ ratpack {
             }
         }
 
+        put('account/totals/sync') { Context context, AccountService accountService ->
+            context.request.getBody().then {
+                accountService.syncTotals()
+                context.response.status(204)
+                render('')
+            }
+        }
+
         path('account/:accountNameOwner') { Context context, AccountService accountService, ObjectMapper objectMapper ->
             String accountNameOwner = context.pathTokens["accountNameOwner"]
             byMethod {
@@ -463,22 +468,26 @@ ratpack {
                 String accountNameOwner = pathTokens["accountNameOwner"]
                 int page = (context.request.queryParams.get("page") ?: "0").toInteger()
                 int size = (context.request.queryParams.get("size") ?: "50").toInteger()
-                List<Transaction> all = transactionService.transactions(accountNameOwner)
-                int total = all.size()
-                int fromIndex = Math.min(page * size, total)
-                int toIndex = Math.min(fromIndex + size, total)
-                List<Transaction> content = all.subList(fromIndex, toIndex)
-                int totalPages = size > 0 ? (int) Math.ceil((double) total / size) : 0
-                render(objectMapper.writeValueAsString([
-                    content      : content,
-                    totalElements: total,
-                    totalPages   : totalPages,
-                    pageNumber   : page,
-                    pageSize     : size,
-                    first        : page == 0,
-                    last         : page >= totalPages - 1,
-                    empty        : content.isEmpty()
-                ]))
+                String search = context.request.queryParams.get("search") ?: null
+                String statesParam = context.request.queryParams.get("states")
+                String typesParam = context.request.queryParams.get("transactionTypes")
+                String reoccurParam = context.request.queryParams.get("reoccurringTypes")
+                String startDateParam = context.request.queryParams.get("startDate")
+                String endDateParam = context.request.queryParams.get("endDate")
+                String minAmountParam = context.request.queryParams.get("minAmount")
+                String maxAmountParam = context.request.queryParams.get("maxAmount")
+
+                List<String> states = statesParam ? statesParam.split(",").collect { it.trim().toLowerCase() } : null
+                List<String> transactionTypes = typesParam ? typesParam.split(",").collect { it.trim().toLowerCase() } : null
+                List<String> reoccurringTypes = reoccurParam ? reoccurParam.split(",").collect { it.trim().toLowerCase() } : null
+                java.time.LocalDate startDate = startDateParam ? java.time.LocalDate.parse(startDateParam) : null
+                java.time.LocalDate endDate = endDateParam ? java.time.LocalDate.parse(endDateParam) : null
+                BigDecimal minAmount = minAmountParam ? new BigDecimal(minAmountParam) : null
+                BigDecimal maxAmount = maxAmountParam ? new BigDecimal(maxAmountParam) : null
+
+                render(objectMapper.writeValueAsString(transactionService.transactionsFiltered(
+                    accountNameOwner, page, size, search, states, transactionTypes, reoccurringTypes, startDate, endDate, minAmount, maxAmount
+                )))
             }
         }
 
@@ -1147,77 +1156,6 @@ ratpack {
                         } else {
                             context.response.status(404)
                             context.render('{"error":"transfer not found"}')
-                        }
-                    }
-                }
-            }
-        }
-
-        // ===== PENDING TRANSACTION =====
-
-        get('pending/transaction/active') { Context context, PendingTransactionService pendingTransactionService, ObjectMapper objectMapper ->
-            context.request.getBody().then {
-                render(objectMapper.writeValueAsString(pendingTransactionService.pendingTransactions()))
-            }
-        }
-
-        post('pending/transaction') { Context context, PendingTransactionService pendingTransactionService, ObjectMapper objectMapper ->
-            context.request.body.then {
-                try {
-                    PendingTransaction pt = objectMapper.readValue(it.text, PendingTransaction)
-                    PendingTransaction result = pendingTransactionService.pendingTransactionInsert(pt)
-                    context.response.status(201)
-                    render(objectMapper.writeValueAsString(result))
-                } catch (RuntimeException e) {
-                    context.response.status(400)
-                    render('{"error":"' + e.message + '"}')
-                }
-            }
-        }
-
-        delete('pending/transaction/delete/all') { Context context, PendingTransactionService pendingTransactionService ->
-            context.request.getBody().then {
-                pendingTransactionService.pendingTransactionDeleteAll()
-                context.response.status(204)
-                render('')
-            }
-        }
-
-        path('pending/transaction/:pendingTransactionId') { Context context, PendingTransactionService pendingTransactionService, ObjectMapper objectMapper ->
-            Long pendingTransactionId = Long.parseLong(context.pathTokens["pendingTransactionId"])
-            byMethod {
-                get {
-                    context.request.getBody().then {
-                        PendingTransaction pt = pendingTransactionService.pendingTransaction(pendingTransactionId)
-                        if (pt) {
-                            context.render(objectMapper.writeValueAsString(pt))
-                        } else {
-                            context.response.status(404)
-                            context.render('{"error":"pending transaction not found"}')
-                        }
-                    }
-                }
-                put {
-                    context.request.body.then {
-                        try {
-                            PendingTransaction pt = objectMapper.readValue(it.text, PendingTransaction)
-                            pt.pendingTransactionId = pendingTransactionId
-                            PendingTransaction result = pendingTransactionService.pendingTransactionUpdate(pt)
-                            context.render(objectMapper.writeValueAsString(result))
-                        } catch (RuntimeException e) {
-                            context.response.status(404)
-                            context.render('{"error":"' + e.message + '"}')
-                        }
-                    }
-                }
-                delete {
-                    context.request.getBody().then {
-                        boolean deleted = pendingTransactionService.pendingTransactionDelete(pendingTransactionId)
-                        if (deleted) {
-                            context.render('{}')
-                        } else {
-                            context.response.status(404)
-                            context.render('{"error":"pending transaction not found"}')
                         }
                     }
                 }

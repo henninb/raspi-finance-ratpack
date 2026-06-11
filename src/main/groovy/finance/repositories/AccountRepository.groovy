@@ -66,6 +66,20 @@ class AccountRepository {
         return true
     }
 
+    int reactivateAllTransactionsByAccountNameOwner(String accountNameOwner) {
+        return dslContext.execute(
+            "UPDATE t_transaction SET active_status = true, date_updated = now() WHERE account_name_owner = ?",
+            accountNameOwner
+        )
+    }
+
+    long countTransactionsByAccountNameOwner(String accountNameOwner) {
+        return dslContext.fetchCount(
+            dslContext.selectFrom(T_TRANSACTION)
+                .where(T_TRANSACTION.ACCOUNT_NAME_OWNER.eq(accountNameOwner))
+        )
+    }
+
     List<Account> accounts() {
         return dslContext.selectFrom(T_ACCOUNT)
                 .where(T_ACCOUNT.ACTIVE_STATUS.eq(true))

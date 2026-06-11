@@ -60,6 +60,7 @@ class PaymentService implements Service {
             throw new RuntimeException("Destination account not found: ${payment.destinationAccount}")
         }
 
+        String category = inferCategory(sourceAccount.accountType, destinationAccount.accountType)
         BigDecimal sourceAmount = calculateSourceAmount(payment.amount, sourceAccount.accountType, destinationAccount.accountType)
         BigDecimal destinationAmount = calculateDestinationAmount(payment.amount, sourceAccount.accountType, destinationAccount.accountType)
 
@@ -67,12 +68,12 @@ class PaymentService implements Service {
         sourceTransaction.guid = UUID.randomUUID().toString()
         sourceTransaction.transactionDate = payment.transactionDate
         sourceTransaction.description = "payment"
-        sourceTransaction.category = "bill_pay"
+        sourceTransaction.category = category
         sourceTransaction.notes = "to ${payment.destinationAccount}"
         sourceTransaction.amount = sourceAmount
         sourceTransaction.transactionState = TransactionState.outstanding
         sourceTransaction.reoccurringType = ReoccurringType.onetime
-        sourceTransaction.transactionType = TransactionType.undefined
+        sourceTransaction.transactionType = TransactionType.transfer
         sourceTransaction.accountNameOwner = payment.sourceAccount
         sourceTransaction.owner = payment.owner
         sourceTransaction.activeStatus = true
@@ -86,12 +87,12 @@ class PaymentService implements Service {
         destinationTransaction.guid = UUID.randomUUID().toString()
         destinationTransaction.transactionDate = payment.transactionDate
         destinationTransaction.description = "payment"
-        destinationTransaction.category = "bill_pay"
+        destinationTransaction.category = category
         destinationTransaction.notes = "from ${payment.sourceAccount}"
         destinationTransaction.amount = destinationAmount
         destinationTransaction.transactionState = TransactionState.outstanding
         destinationTransaction.reoccurringType = ReoccurringType.onetime
-        destinationTransaction.transactionType = TransactionType.undefined
+        destinationTransaction.transactionType = TransactionType.transfer
         destinationTransaction.accountNameOwner = payment.destinationAccount
         destinationTransaction.owner = payment.owner
         destinationTransaction.activeStatus = true
@@ -138,27 +139,23 @@ class PaymentService implements Service {
         return deleted
     }
 
+    private String inferCategory(AccountType sourceType, AccountType destType) {
+        if (sourceType == AccountType.debit && destType == AccountType.credit) return "bill_pay"
+        if (sourceType == AccountType.debit && destType == AccountType.debit) return "transfer"
+        if (sourceType == AccountType.credit && destType == AccountType.debit) return "cash_advance"
+        if (sourceType == AccountType.credit && destType == AccountType.credit) return "balance_transfer"
+        throw new IllegalStateException("Unsupported account type combination for payment: ${sourceType} -> ${destType}")
+    }
+
     private BigDecimal calculateSourceAmount(BigDecimal amount, AccountType sourceType, AccountType destType) {
-        if (sourceType == AccountType.credit && destType == AccountType.debit) {
-            // cash advance
-            return amount.abs()
-        } else if (sourceType == AccountType.credit && destType == AccountType.credit) {
-            // balance transfer
-            return amount.abs()
-        }
-        // bill payment or transfer: deduct from source
+        if (sourceType == AccountType.credit && destType == AccountType.debit) return amount.abs()
+        if (sourceType == AccountType.credit && destType == AccountType.credit) return amount.abs()
         return amount.abs().negate()
     }
 
     private BigDecimal calculateDestinationAmount(BigDecimal amount, AccountType sourceType, AccountType destType) {
-        if (sourceType == AccountType.debit && destType == AccountType.debit) {
-            // transfer: add to destination
-            return amount.abs()
-        } else if (sourceType == AccountType.credit && destType == AccountType.debit) {
-            // cash advance: add to destination
-            return amount.abs()
-        }
-        // bill payment or balance transfer: payment reduces balance
+        if (sourceType == AccountType.debit && destType == AccountType.debit) return amount.abs()
+        if (sourceType == AccountType.credit && destType == AccountType.debit) return amount.abs()
         return amount.abs().negate()
     }
 }

@@ -4,7 +4,10 @@ import finance.domain.Account
 import finance.domain.BonusProgress
 import finance.domain.Category
 import finance.domain.Description
+import finance.domain.ReoccurringType
 import finance.domain.Transaction
+import finance.domain.TransactionState
+import finance.domain.TransactionType
 import finance.repositories.AccountRepository
 import finance.repositories.CategoryRepository
 import finance.repositories.DescriptionRepository
@@ -97,6 +100,12 @@ class TransactionService implements Service {
     }
 
     Transaction transactionInsert(Transaction transaction) {
+        if (transaction.transactionState == TransactionState.undefined) {
+            throw new IllegalArgumentException("transactionState cannot be 'undefined'")
+        }
+        if (transaction.transactionType == TransactionType.undefined) {
+            throw new IllegalArgumentException("transactionType cannot be 'undefined'")
+        }
         transaction.dateUpdated = new Timestamp(System.currentTimeMillis())
         transaction.dateAdded = new Timestamp(System.currentTimeMillis())
 
@@ -161,6 +170,36 @@ class TransactionService implements Service {
         boolean result = transactionRepository.transactionStateUpdate(guid, transactionState)
         accountRepository.updateTotalsForAllAccounts()
         return result
+    }
+
+    Map<String, Object> transactionsFiltered(
+            String accountNameOwner,
+            int page,
+            int size,
+            String search,
+            List<String> states,
+            List<String> transactionTypes,
+            List<String> reoccurringTypes,
+            LocalDate startDate,
+            LocalDate endDate,
+            BigDecimal minAmount,
+            BigDecimal maxAmount) {
+        int cappedSize = Math.max(1, Math.min(size, 1000))
+        List<Transaction> content = transactionRepository.transactionsFiltered(
+            accountNameOwner, page, cappedSize, search, states, transactionTypes, reoccurringTypes, startDate, endDate, minAmount, maxAmount)
+        int total = transactionRepository.countTransactionsFiltered(
+            accountNameOwner, search, states, transactionTypes, reoccurringTypes, startDate, endDate, minAmount, maxAmount)
+        int totalPages = cappedSize > 0 ? (int) Math.ceil((double) total / cappedSize) : 0
+        return [
+            content      : content,
+            totalElements: total,
+            totalPages   : totalPages,
+            pageNumber   : page,
+            pageSize     : cappedSize,
+            first        : page == 0,
+            last         : page >= totalPages - 1,
+            empty        : content.isEmpty()
+        ]
     }
 
     List<Transaction> transactionsByDateRange(LocalDate startDate, LocalDate endDate) {
